@@ -659,13 +659,42 @@ code {
 
 .report-actions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
   margin-bottom: 14px;
 }
 
-.report-actions button {
-  min-height: 46px;
+.report-actions button,
+.macro-toolbar button,
+.macro-row button,
+.findings-clear {
+  min-height: 42px;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.report-actions .secondary,
+.report-actions .ghost,
+.macro-toolbar .secondary,
+.macro-toolbar .ghost,
+.macro-row .ghost,
+.findings-clear.ghost {
+  background: #ffffff;
+  color: var(--text);
+  border-color: #b8b8b8;
+}
+
+.report-actions .secondary:hover,
+.report-actions .ghost:hover,
+.macro-toolbar .secondary:hover,
+.macro-toolbar .ghost:hover,
+.macro-row .ghost:hover,
+.findings-clear.ghost:hover {
+  background: #f5f5f5;
+  border-color: var(--line-strong);
 }
 
 .profile-grid {
@@ -731,7 +760,9 @@ code {
 
 .report-preview {
   margin: 0;
-  padding: 14px;
+  max-height: 300px;
+  padding: 12px 14px;
+  overflow: auto;
   border: 1px solid var(--line);
   background: #fbfbfb;
   font-family: Menlo, Monaco, Consolas, monospace;
@@ -908,11 +939,38 @@ code {
 }
 
 .waterfall-columns {
-  grid-template-columns: minmax(140px, 0.7fr) 110px minmax(0, 1.2fr) minmax(0, 1.3fr);
+  grid-template-columns: minmax(112px, 0.55fr) 96px minmax(0, 1fr) minmax(0, 1fr);
 }
 
 .waterfall-kind {
   margin-top: 6px;
+}
+
+.waterfall-table {
+  max-height: 580px;
+  overflow: auto;
+}
+
+.waterfall-table .table-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.waterfall-table .table-head > span,
+.waterfall-table .table-cell {
+  padding: 10px 12px;
+}
+
+.waterfall-table .row-detail strong,
+.waterfall-table .row-detail span,
+.waterfall-table .url-code {
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.waterfall-table .row-detail strong {
+  font-weight: 600;
 }
 
 .status-ok {
@@ -1027,7 +1085,8 @@ code {
   display: block;
   color: var(--muted);
   white-space: pre-wrap;
-  word-break: break-all;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .asset-columns {
@@ -1041,7 +1100,8 @@ code {
 
 .macro-toolbar {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(0, 0.4fr));
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: end;
   gap: 10px;
   margin-bottom: 12px;
 }
@@ -1061,7 +1121,7 @@ code {
 .macro-picker select,
 .macro-row input {
   width: 100%;
-  min-height: 42px;
+  min-height: 40px;
   border: 1px solid var(--line);
   border-radius: 0;
   padding: 0 12px;
@@ -1071,18 +1131,31 @@ code {
 
 .macro-editor {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 14px;
 }
 
 .macro-row {
   display: grid;
-  grid-template-columns: minmax(160px, 0.7fr) minmax(0, 1fr) 110px;
+  grid-template-columns: minmax(138px, 0.62fr) minmax(0, 1fr) auto;
   gap: 10px;
 }
 
 .macro-preview-list {
   display: grid;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.macro-preview-panel .timeline-item {
+  gap: 4px;
+  padding: 10px 12px;
+}
+
+.macro-preview-panel .timeline-item p,
+.macro-preview-panel .timeline-item code {
+  font-size: 0.84rem;
+  line-height: 1.45;
 }
 
 .verification-columns {
@@ -1254,7 +1327,7 @@ code {
 }
 
 .findings-columns {
-  grid-template-columns: 110px minmax(190px, 0.9fr) 110px minmax(0, 1.7fr);
+  grid-template-columns: 96px minmax(180px, 0.85fr) 104px minmax(0, 1.8fr);
 }
 
 .wrapper-columns {
@@ -1311,6 +1384,17 @@ code {
   letter-spacing: 0.08em;
   font-size: 0.75rem;
   border: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.findings-panel .table-head > span,
+.findings-panel .table-cell {
+  padding: 10px 12px;
+}
+
+.findings-panel .chip {
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
 }
 
 .severity-error .chip {
@@ -1386,17 +1470,40 @@ code {
   .resolved-grid,
   .metric-grid,
   .scenario-grid,
-  .report-actions,
   .playback-shell,
   .preview-grid,
   .runner-status-grid,
   .runtime-metrics,
   .waterfall-metrics,
   .asset-summary,
-  .macro-toolbar,
-  .macro-row,
   .profile-grid {
     grid-template-columns: 1fr;
+  }
+
+  .report-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profile-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .macro-toolbar {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .macro-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .macro-row input:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .macro-row button {
+    min-width: 112px;
+    justify-self: end;
   }
 
   .brand-bar {
@@ -1485,8 +1592,21 @@ code {
     padding: 14px;
   }
 
-  .action-row {
+  .action-row,
+  .report-actions,
+  .profile-grid,
+  .macro-toolbar,
+  .macro-row {
     grid-template-columns: 1fr;
+  }
+
+  .macro-row input:first-child {
+    grid-column: auto;
+  }
+
+  .macro-row button {
+    min-width: 0;
+    justify-self: stretch;
   }
 
   .editor-shell {
