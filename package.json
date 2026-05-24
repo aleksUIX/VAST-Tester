@@ -1,0 +1,36 @@
+{
+  "name": "vast-tester-aleksuix",
+  "version": "0.1.0",
+  "description": "Modern VAST tester built on top of local vastlint packages.",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "cf:login": "npx wrangler login",
+    "cf:pages:create": "npx wrangler pages project create iab-tech-lab-vast-tester --production-branch=master",
+    "deploy:pages": "npm run build && npx wrangler pages deploy dist --project-name=iab-tech-lab-vast-tester --branch=master",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "vastlint": "file:../vastlint/npm",
+    "vastlint-client": "file:../vastlint/packages/vastlint-client",
+    "vastlint-react": "file:../vastlint/packages/vastlint-react"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^5.0.4",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.7",
+    "vite-plugin-top-level-await": "^1.6.0",
+    "vite-plugin-wasm": "^3.5.0"
+  }
+}

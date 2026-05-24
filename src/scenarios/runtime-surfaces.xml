@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.1">
+  <Ad id="runtime-surfaces-1" sequence="1">
+    <InLine>
+      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdServingId>runtime-surfaces-1</AdServingId>
+      <AdTitle>runtime surfaces scenario</AdTitle>
+      <Error><![CDATA[https://example.com/error?code=%%ERRORCODE%%&cb=[CACHEBUSTING]]]></Error>
+      <Impression><![CDATA[https://example.com/impression]]></Impression>
+      <Creatives>
+        <Creative id="runtime-creative-1">
+          <UniversalAdId idRegistry="Ad-ID">8465</UniversalAdId>
+          <Linear skipoffset="00:00:05">
+            <Duration>00:00:15</Duration>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://example.com/start]]></Tracking>
+              <Tracking event="firstQuartile"><![CDATA[https://example.com/first-quartile]]></Tracking>
+              <Tracking event="midpoint"><![CDATA[https://example.com/midpoint]]></Tracking>
+              <Tracking event="thirdQuartile"><![CDATA[https://example.com/third-quartile]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://example.com/complete]]></Tracking>
+            </TrackingEvents>
+            <Icons>
+              <Icon program="vastlint-demo" width="80" height="40" xPosition="left" yPosition="top" offset="00:00:02" duration="00:00:05">
+                <StaticResource creativeType="image/png"><![CDATA[https://dummyimage.com/80x40/e7e7e7/111111.png&text=ICON]]></StaticResource>
+                <IconClickThrough><![CDATA[https://example.com/icon-click]]></IconClickThrough>
+              </Icon>
+            </Icons>
+            <VideoClicks>
+              <ClickThrough><![CDATA[https://example.com/clickthrough]]></ClickThrough>
+            </VideoClicks>
+            <MediaFiles>
+              <MediaFile delivery="progressive" type="video/webm" width="640" height="360" bitrate="800"><![CDATA[https://example.com/fixtures/video/360p30.webm]]></MediaFile>
+              <MediaFile delivery="progressive" type="video/mp4" width="640" height="360" bitrate="1200"><![CDATA[https://example.com/fixtures/video/360p30.mp4]]></MediaFile>
+            </MediaFiles>
+          </Linear>
+          <CompanionAds>
+            <Companion id="companion-1" width="300" height="250" apiFramework="VPAID">
+              <StaticResource creativeType="image/png"><![CDATA[https://dummyimage.com/300x250/d6d6d6/111111.png&text=Companion+Preview]]></StaticResource>
+              <CompanionClickThrough><![CDATA[https://example.com/companion-click]]></CompanionClickThrough>
+            </Companion>
+          </CompanionAds>
+        </Creative>
+      </Creatives>
+      <AdVerifications>
+        <Verification vendor="vastlint.org-omid-demo">
+          <JavaScriptResource apiFramework="omid" browserOptional="true"><![CDATA[https://example.com/omid.js]]></JavaScriptResource>
+          <VerificationParameters><![CDATA[mode=test]]></VerificationParameters>
+        </Verification>
+      </AdVerifications>
+    </InLine>
+  </Ad>
+</VAST>

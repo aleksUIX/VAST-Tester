@@ -1,0 +1,24 @@
+.vast-details {
+  .vast-info {
+    dt {
+      width: 33.3%;
+    }
+
+    dd {
+      width: 66.7%;
+    }
+  }
+
+  .vast-chain {
+    @include respond('padding', $r-space-medium);
+    background: transparentize($foreground-color, 0.975);
+
+    * {
+      background: transparent !important;
+    }
+
+    .vast {
+      @include respond('margin-bottom', $r-space-medium);
+    }
+  }
+}
