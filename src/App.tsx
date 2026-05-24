@@ -1,10 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import JSZip from "jszip";
 import { useVastPlayback, useVastSession, useVastTracker } from "vastlint-react";
+import adIdentityXml from "./scenarios/ad-identity.xml?raw";
+import adVerificationXml from "./scenarios/ad-verification.xml?raw";
 import brokenXml from "./scenarios/broken-tag.xml?raw";
+import clickTrackingXml from "./scenarios/click-tracking.xml?raw";
+import closedCaptionsXml from "./scenarios/closed-captions.xml?raw";
+import companionBannerXml from "./scenarios/companion-banner.xml?raw";
 import fixableXml from "./scenarios/fixable-tag.xml?raw";
+import iconFallbacksXml from "./scenarios/icon-fallbacks.xml?raw";
+import mezzanineSupportXml from "./scenarios/mezzanine-support.xml?raw";
+import nonLinearOverlayXml from "./scenarios/non-linear-overlay.xml?raw";
+import pricingCategoryXml from "./scenarios/pricing-category.xml?raw";
 import runtimeSurfacesXml from "./scenarios/runtime-surfaces.xml?raw";
 import sampleXml from "./scenarios/sample-inline.xml?raw";
+import skippableLinearXml from "./scenarios/skippable-linear.xml?raw";
+import viewableImpressionXml from "./scenarios/viewable-impression.xml?raw";
+import wrapperSignalsXml from "./scenarios/wrapper-signals.xml?raw";
 
 import type { FixResult, Issue, ValidateOptions } from "vastlint";
 import { createVastSession } from "vastlint-client";
@@ -26,6 +38,8 @@ import type {
 type SourceMode = "xml" | "url";
 type ActionMode = "validate" | "resolve" | "fix";
 type ComplianceProfileId = "strict-iab" | "ctv-safe" | "ssai-safe" | "legacy-player";
+type ScenarioGroupId = "core" | "creative-types" | "measurement" | "ctv-ssai";
+type ScenarioActionFilter = "all" | ActionMode;
 
 interface RunRequest {
   id: number;
@@ -38,9 +52,18 @@ interface ScenarioPreset {
   id: string;
   label: string;
   description: string;
+  groupId: ScenarioGroupId;
+  versionLabel: string;
+  focusAreas: readonly string[];
   sourceMode: SourceMode;
   action: ActionMode;
   payload: string;
+}
+
+interface ScenarioGroupDefinition {
+  id: ScenarioGroupId;
+  label: string;
+  description: string;
 }
 
 interface SharedSessionState {
@@ -174,6 +197,7 @@ interface EditorIssueMarker {
 const EDITOR_LINE_HEIGHT = 28;
 const EDITOR_VERTICAL_PADDING = 16;
 const DEFAULT_APP_ORIGIN = "http://localhost:5175";
+const SCENARIO_FALLBACK_ASSET_ORIGIN = "https://iab-tech-lab-vast-tester.vastlint.org";
 const APP_BASE_PATH = import.meta.env.BASE_URL ?? "/";
 
 const PROFILE_RULE_DEFAULT_SEVERITIES: Record<string, Issue["severity"]> = {
@@ -250,9 +274,34 @@ function countIssuesForProfile(issues: readonly Issue[], profileId: CompliancePr
 
 const SCENARIO_PRESETS: readonly ScenarioPreset[] = [
   {
+    id: "inline-linear",
+    label: "Inline linear",
+    description: "Baseline inline linear ad with quartile tracking and playable media.",
+    groupId: "core",
+    versionLabel: "VAST 4.0",
+    focusAreas: ["inline", "linear", "quartiles"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: sampleXml,
+  },
+  {
+    id: "skippable-linear",
+    label: "Skippable linear",
+    description: "Linear playback with a real skip offset, skip beacon, and standard clickthrough handling.",
+    groupId: "core",
+    versionLabel: "VAST 4.1",
+    focusAreas: ["skippable", "linear", "playback"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: skippableLinearXml,
+  },
+  {
     id: "broken-tag",
     label: "Broken tag",
     description: "Structural errors for missing required VAST 4.x elements.",
+    groupId: "core",
+    versionLabel: "VAST 4.2",
+    focusAreas: ["errors", "required fields"],
     sourceMode: "xml",
     action: "validate",
     payload: brokenXml,
@@ -261,6 +310,9 @@ const SCENARIO_PRESETS: readonly ScenarioPreset[] = [
     id: "fixable-tag",
     label: "Fixable tag",
     description: "HTTPS upgrades that can be repaired deterministically.",
+    groupId: "core",
+    versionLabel: "VAST 4.1",
+    focusAreas: ["repair", "https"],
     sourceMode: "xml",
     action: "validate",
     payload: fixableXml,
@@ -269,19 +321,180 @@ const SCENARIO_PRESETS: readonly ScenarioPreset[] = [
     id: "wrapper-chain",
     label: "Wrapper chain",
     description: "Local two-hop wrapper fixture for resolution demos.",
+    groupId: "core",
+    versionLabel: "VAST 4.x",
+    focusAreas: ["wrapper", "resolve", "waterfall"],
     sourceMode: "url",
     action: "resolve",
     payload: "/scenarios/wrapper-root.xml",
   },
   {
+    id: "pricing-category",
+    label: "Pricing and category",
+    description: "Commercial metadata coverage with pricing, content category, and progress beacons.",
+    groupId: "core",
+    versionLabel: "VAST 4.1",
+    focusAreas: ["pricing", "category", "metadata"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: pricingCategoryXml,
+  },
+  {
+    id: "non-linear-overlay",
+    label: "Non-linear overlay",
+    description: "Overlay creative coverage for non-linear placements and click-through handling.",
+    groupId: "creative-types",
+    versionLabel: "VAST 2.0",
+    focusAreas: ["non-linear", "overlay"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: nonLinearOverlayXml,
+  },
+  {
+    id: "companion-banner",
+    label: "Companion banner",
+    description: "Inline linear ad paired with a companion creative and companion click tracking.",
+    groupId: "creative-types",
+    versionLabel: "VAST 4.1",
+    focusAreas: ["companion", "banner"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: companionBannerXml,
+  },
+  {
+    id: "icon-fallbacks",
+    label: "Icon fallbacks",
+    description: "Ad icon payload with click fallback imagery for player-side disclosure handling.",
+    groupId: "creative-types",
+    versionLabel: "VAST 4.2",
+    focusAreas: ["icons", "fallbacks", "overlay"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: iconFallbacksXml,
+  },
+  {
     id: "runtime-surfaces",
     label: "Runtime surfaces",
     description: "Companions, OMID verification resources, and VPAID markers.",
+    groupId: "creative-types",
+    versionLabel: "VAST 4.1",
+    focusAreas: ["verification", "icons", "companions"],
     sourceMode: "xml",
     action: "validate",
     payload: runtimeSurfacesXml,
   },
+  {
+    id: "click-tracking",
+    label: "Click tracking",
+    description: "Video click-through, click tracking, and custom click URLs in one linear ad.",
+    groupId: "measurement",
+    versionLabel: "VAST 4.1",
+    focusAreas: ["clicks", "tracking"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: clickTrackingXml,
+  },
+  {
+    id: "viewable-impression",
+    label: "Viewable impression",
+    description: "Secondary impression reporting for viewable, not-viewable, and undetermined outcomes.",
+    groupId: "measurement",
+    versionLabel: "VAST 4.1",
+    focusAreas: ["viewability", "impression"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: viewableImpressionXml,
+  },
+  {
+    id: "ad-verification",
+    label: "Ad verification",
+    description: "OM SDK verification payloads with verification parameters and fallback tracking.",
+    groupId: "measurement",
+    versionLabel: "VAST 4.1",
+    focusAreas: ["omid", "verification"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: adVerificationXml,
+  },
+  {
+    id: "wrapper-signals",
+    label: "Wrapper signals",
+    description: "Wrapper-only measurement signals with inherited tracking, click beacons, and viewability hooks.",
+    groupId: "measurement",
+    versionLabel: "VAST 4.1",
+    focusAreas: ["wrapper", "beacons", "measurement"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: wrapperSignalsXml,
+  },
+  {
+    id: "ad-identity",
+    label: "Ad identity",
+    description: "Modern ad identity fields with AdServingId and UniversalAdId for partner QA.",
+    groupId: "ctv-ssai",
+    versionLabel: "VAST 4.1",
+    focusAreas: ["adservingid", "universaladid"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: adIdentityXml,
+  },
+  {
+    id: "mezzanine-support",
+    label: "Mezzanine support",
+    description: "CTV and SSAI-oriented tag carrying both ready-to-serve media and a mezzanine source.",
+    groupId: "ctv-ssai",
+    versionLabel: "VAST 4.1",
+    focusAreas: ["ssai", "mezzanine"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: mezzanineSupportXml,
+  },
+  {
+    id: "closed-captions",
+    label: "Closed captions",
+    description: "MediaFiles bundle with multiple caption resources for accessibility coverage.",
+    groupId: "ctv-ssai",
+    versionLabel: "VAST 4.2",
+    focusAreas: ["captions", "accessibility"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: closedCaptionsXml,
+  },
 ];
+
+const SCENARIO_GROUPS: readonly ScenarioGroupDefinition[] = [
+  {
+    id: "core",
+    label: "Core coverage",
+    description: "Baseline inline, skippable, metadata, wrapper resolution, and known-bad regression tags.",
+  },
+  {
+    id: "creative-types",
+    label: "Creative formats",
+    description: "Non-linear, companion, icons, and mixed runtime surfaces that stress player integrations.",
+  },
+  {
+    id: "measurement",
+    label: "Measurement",
+    description: "Click, wrapper, viewability, and OMID verification cases that tend to break analytics pipelines.",
+  },
+  {
+    id: "ctv-ssai",
+    label: "CTV and SSAI",
+    description: "Identity, mezzanine, and captioning samples for modern distribution workflows.",
+  },
+];
+
+const GROUPED_SCENARIO_PRESETS = SCENARIO_GROUPS.map((group) => ({
+  ...group,
+  scenarios: SCENARIO_PRESETS.filter((scenario) => scenario.groupId === group.id),
+}));
+
+const ACTION_LABELS: Record<ActionMode, string> = {
+  validate: "Validate",
+  resolve: "Resolve wrappers",
+  fix: "Auto-fix",
+};
 
 function buildSource(sourceMode: SourceMode, payload: string): VastSessionSource {
   if (sourceMode === "url") {
@@ -317,6 +530,21 @@ function buildLocalAssetUrl(path: string) {
 
 function buildScenarioUrl(path: string) {
   return buildLocalAssetUrl(path);
+}
+
+function buildScenarioFixtureUrl(path: string) {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  if (typeof globalThis.location === "object" && globalThis.location.protocol === "https:") {
+    return buildLocalAssetUrl(normalizedPath);
+  }
+
+  return new URL(normalizedPath, SCENARIO_FALLBACK_ASSET_ORIGIN).toString();
+}
+
+function absolutizeScenarioXmlLocalUrls(xml: string) {
+  return xml.replace(/<!\[CDATA\[(\/[^\]]*)\]\]>/g, (_match, path: string) => {
+    return `<![CDATA[${buildScenarioFixtureUrl(path)}]]>`;
+  });
 }
 
 function createTimestamp() {
@@ -1430,6 +1658,9 @@ function App() {
   const [xmlDraft, setXmlDraft] = useState(sharedSession?.sourceMode === "xml" ? sharedSession.payload : sampleXml);
   const [urlDraft, setUrlDraft] = useState("");
   const [activeScenarioId, setActiveScenarioId] = useState<string | null>(sharedSession?.activeScenarioId ?? null);
+  const [scenarioVersionFilter, setScenarioVersionFilter] = useState("all");
+  const [scenarioActionFilter, setScenarioActionFilter] = useState<ScenarioActionFilter>("all");
+  const [scenarioSurfaceFilter, setScenarioSurfaceFilter] = useState("all");
   const [lastRun, setLastRun] = useState<RunRequest>({
     id: 1,
     sourceMode: sharedSession?.sourceMode ?? "xml",
@@ -1521,6 +1752,47 @@ function App() {
   const severity = countBySeverity(issues);
   const resolvedAds = snapshot.resolvedAds;
   const activeScenario = SCENARIO_PRESETS.find((scenario) => scenario.id === activeScenarioId) ?? null;
+  const scenarioVersionOptions = useMemo(
+    () => Array.from(new Set(SCENARIO_PRESETS.map((scenario) => scenario.versionLabel))),
+    [],
+  );
+  const scenarioActionOptions = useMemo(
+    () => Array.from(new Set(SCENARIO_PRESETS.map((scenario) => scenario.action))),
+    [],
+  );
+  const scenarioSurfaceOptions = useMemo(
+    () => Array.from(new Set(SCENARIO_PRESETS.flatMap((scenario) => scenario.focusAreas))).sort((left, right) => left.localeCompare(right)),
+    [],
+  );
+  const filteredScenarioGroups = useMemo(
+    () => GROUPED_SCENARIO_PRESETS.map((group) => ({
+      ...group,
+      scenarios: group.scenarios.filter((scenario) => {
+        if (scenarioVersionFilter !== "all" && scenario.versionLabel !== scenarioVersionFilter) {
+          return false;
+        }
+
+        if (scenarioActionFilter !== "all" && scenario.action !== scenarioActionFilter) {
+          return false;
+        }
+
+        if (scenarioSurfaceFilter !== "all" && !scenario.focusAreas.includes(scenarioSurfaceFilter)) {
+          return false;
+        }
+
+        return true;
+      }),
+    })).filter((group) => group.scenarios.length > 0),
+    [scenarioActionFilter, scenarioSurfaceFilter, scenarioVersionFilter],
+  );
+  const filteredScenarioCount = useMemo(
+    () => filteredScenarioGroups.reduce((count, group) => count + group.scenarios.length, 0),
+    [filteredScenarioGroups],
+  );
+  const hasScenarioFilters = scenarioVersionFilter !== "all" || scenarioActionFilter !== "all" || scenarioSurfaceFilter !== "all";
+  const activeScenarioMatchesFilters = activeScenario === null
+    ? true
+    : filteredScenarioGroups.some((group) => group.scenarios.some((scenario) => scenario.id === activeScenario.id));
   const overviewTone = buildOverviewTone(snapshot.validation?.summary.valid ?? null, issues.length, resolvedAds.length);
   const activePayload = sourceMode === "xml" ? xmlDraft : urlDraft;
   const trimmedPayload = activePayload.trim();
@@ -1895,7 +2167,7 @@ function App() {
   };
 
   const runScenario = (scenario: ScenarioPreset) => {
-    const payload = scenario.sourceMode === "url" ? buildScenarioUrl(scenario.payload) : scenario.payload;
+    const payload = scenario.sourceMode === "url" ? buildScenarioUrl(scenario.payload) : absolutizeScenarioXmlLocalUrls(scenario.payload);
     setActiveScenarioId(scenario.id);
     setRunError(null);
     setLastFix(null);
@@ -2333,22 +2605,108 @@ function App() {
 
           <div className="scenario-block">
             <div className="scenario-heading">
-              <p className="section-label">Regression scenarios</p>
-              <span>Load and run a canned demo in one click.</span>
+              <p className="section-label">Scenario library</p>
+              <span>Version-aware presets grouped by baseline, creative, measurement, and CTV QA coverage.</span>
             </div>
-            <div className="scenario-grid">
-              {SCENARIO_PRESETS.map((scenario) => (
+            <div className="scenario-toolbar">
+              <div className="scenario-toolbar-copy">
+                <strong>
+                  Showing {String(filteredScenarioCount)} of {String(SCENARIO_PRESETS.length)} presets
+                </strong>
+                <span>
+                  {activeScenario !== null && !activeScenarioMatchesFilters
+                    ? `Active scenario \"${activeScenario.label}\" is outside the current filter slice.`
+                    : "Load and run a canned demo in one click."}
+                </span>
+              </div>
+              <div className="scenario-filter-grid">
+                <label className="scenario-filter">
+                  <span>Version</span>
+                  <select value={scenarioVersionFilter} onChange={(event) => setScenarioVersionFilter(event.target.value)}>
+                    <option value="all">All versions</option>
+                    {scenarioVersionOptions.map((versionLabel) => (
+                      <option key={versionLabel} value={versionLabel}>
+                        {versionLabel}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="scenario-filter">
+                  <span>Action</span>
+                  <select
+                    value={scenarioActionFilter}
+                    onChange={(event) => setScenarioActionFilter(event.target.value as ScenarioActionFilter)}
+                  >
+                    <option value="all">All actions</option>
+                    {scenarioActionOptions.map((action) => (
+                      <option key={action} value={action}>
+                        {ACTION_LABELS[action]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="scenario-filter">
+                  <span>Surface</span>
+                  <select value={scenarioSurfaceFilter} onChange={(event) => setScenarioSurfaceFilter(event.target.value)}>
+                    <option value="all">All surfaces</option>
+                    {scenarioSurfaceOptions.map((surface) => (
+                      <option key={surface} value={surface}>
+                        {surface}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <button
-                  key={scenario.id}
-                  className={`scenario-button ${activeScenarioId === scenario.id ? "active" : ""}`}
-                  onClick={() => runScenario(scenario)}
+                  className="ghost scenario-reset"
+                  disabled={!hasScenarioFilters}
+                  onClick={() => {
+                    setScenarioVersionFilter("all");
+                    setScenarioActionFilter("all");
+                    setScenarioSurfaceFilter("all");
+                  }}
                   type="button"
                 >
-                  <strong>{scenario.label}</strong>
-                  <span>{scenario.description}</span>
-                  <small>Runs {scenario.action === "resolve" ? "resolve wrappers" : "validate"}</small>
+                  Reset filters
                 </button>
+              </div>
+            </div>
+            <div className="scenario-groups">
+              {filteredScenarioGroups.map((group) => (
+                <section className="scenario-group" key={group.id}>
+                  <div className="scenario-heading scenario-subheading">
+                    <p className="section-label">{group.label}</p>
+                    <span>{group.description}</span>
+                  </div>
+                  <div className="scenario-grid">
+                    {group.scenarios.map((scenario) => (
+                      <button
+                        key={scenario.id}
+                        className={`scenario-button ${activeScenarioId === scenario.id ? "active" : ""}`}
+                        onClick={() => runScenario(scenario)}
+                        type="button"
+                      >
+                        <div className="scenario-meta-row">
+                          <span className="scenario-pill">{scenario.versionLabel}</span>
+                          <span className="scenario-pill">{scenario.action === "resolve" ? "Resolve" : "Validate"}</span>
+                        </div>
+                        <strong>{scenario.label}</strong>
+                        <span>{scenario.description}</span>
+                        <div className="scenario-tag-row">
+                          {scenario.focusAreas.map((focusArea) => (
+                            <span className="scenario-chip" key={`${scenario.id}-${focusArea}`}>
+                              {focusArea}
+                            </span>
+                          ))}
+                        </div>
+                        <small>{scenario.sourceMode === "url" ? "Local URL fixture" : "Inline XML fixture"}</small>
+                      </button>
+                    ))}
+                  </div>
+                </section>
               ))}
+              {filteredScenarioCount === 0 ? (
+                <div className="scenario-empty">No presets match the current version, action, and surface filters.</div>
+              ) : null}
             </div>
           </div>
 

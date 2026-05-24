@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.1">
+  <Ad id="click-tracking-1" sequence="1">
+    <InLine>
+      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdServingId>click-tracking-1</AdServingId>
+      <AdTitle>click tracking scenario</AdTitle>
+      <Impression><![CDATA[https://example.com/impression]]></Impression>
+      <Creatives>
+        <Creative id="click-creative-1">
+          <UniversalAdId idRegistry="Ad-ID">CLICK-8465</UniversalAdId>
+          <Linear>
+            <Duration>00:00:15</Duration>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://example.com/start]]></Tracking>
+              <Tracking event="firstQuartile"><![CDATA[https://example.com/first-quartile]]></Tracking>
+              <Tracking event="midpoint"><![CDATA[https://example.com/midpoint]]></Tracking>
+              <Tracking event="thirdQuartile"><![CDATA[https://example.com/third-quartile]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://example.com/complete]]></Tracking>
+            </TrackingEvents>
+            <VideoClicks>
+              <ClickThrough><![CDATA[https://example.com/clickthrough]]></ClickThrough>
+              <ClickTracking><![CDATA[https://example.com/click-tracker-primary]]></ClickTracking>
+              <ClickTracking><![CDATA[https://example.com/click-tracker-secondary?cb=[CACHEBUSTING]]]></ClickTracking>
+              <CustomClick><![CDATA[https://example.com/custom-click]]></CustomClick>
+            </VideoClicks>
+            <MediaFiles>
+              <MediaFile delivery="progressive" type="video/webm" width="640" height="360" bitrate="800"><![CDATA[/fixtures/video/360p30.webm]]></MediaFile>
+              <MediaFile delivery="progressive" type="video/mp4" width="640" height="360" bitrate="1200"><![CDATA[/fixtures/video/360p30.mp4]]></MediaFile>
+            </MediaFiles>
+          </Linear>
+        </Creative>
+      </Creatives>
+    </InLine>
+  </Ad>
+</VAST>

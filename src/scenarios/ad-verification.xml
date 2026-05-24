@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.1">
+  <Ad id="ad-verification-1" sequence="1">
+    <InLine>
+      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdServingId>ad-verification-1</AdServingId>
+      <AdTitle>ad verification scenario</AdTitle>
+      <Error><![CDATA[https://example.com/error?code=%%ERRORCODE%%]]></Error>
+      <Impression><![CDATA[https://example.com/impression]]></Impression>
+      <Creatives>
+        <Creative id="verification-creative-1">
+          <UniversalAdId idRegistry="Ad-ID">VERIFY-8465</UniversalAdId>
+          <Linear>
+            <Duration>00:00:15</Duration>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://example.com/start]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://example.com/complete]]></Tracking>
+            </TrackingEvents>
+            <VideoClicks>
+              <ClickThrough><![CDATA[https://example.com/clickthrough]]></ClickThrough>
+            </VideoClicks>
+            <MediaFiles>
+              <MediaFile delivery="progressive" type="video/webm" width="640" height="360" bitrate="800"><![CDATA[/fixtures/video/360p30.webm]]></MediaFile>
+              <MediaFile delivery="progressive" type="video/mp4" width="640" height="360" bitrate="1200"><![CDATA[/fixtures/video/360p30.mp4]]></MediaFile>
+            </MediaFiles>
+          </Linear>
+        </Creative>
+      </Creatives>
+      <AdVerifications>
+        <Verification vendor="vastlint.org-omid-demo">
+          <JavaScriptResource apiFramework="omid" browserOptional="true"><![CDATA[/fixtures/omid/omid-validation-verification-script-v1.js]]></JavaScriptResource>
+          <TrackingEvents>
+            <Tracking event="verificationNotExecuted"><![CDATA[https://example.com/verification-not-executed?reason=[REASON]]]></Tracking>
+          </TrackingEvents>
+          <VerificationParameters><![CDATA[mode=test&vendor=vastlint-demo]]></VerificationParameters>
+        </Verification>
+      </AdVerifications>
+    </InLine>
+  </Ad>
+</VAST>

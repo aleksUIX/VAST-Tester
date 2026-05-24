@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.2">
+  <Ad id="icon-fallbacks-1" sequence="1">
+    <InLine>
+      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdServingId>icon-fallbacks-1</AdServingId>
+      <AdTitle>icon fallback scenario</AdTitle>
+      <Error><![CDATA[https://example.com/error?code=%%ERRORCODE%%]]></Error>
+      <Impression><![CDATA[https://example.com/impression]]></Impression>
+      <Creatives>
+        <Creative id="icon-creative-1">
+          <UniversalAdId idRegistry="Ad-ID">ICON-8465</UniversalAdId>
+          <Linear>
+            <Duration>00:00:16</Duration>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://example.com/start]]></Tracking>
+              <Tracking event="firstQuartile"><![CDATA[https://example.com/first-quartile]]></Tracking>
+              <Tracking event="midpoint"><![CDATA[https://example.com/midpoint]]></Tracking>
+              <Tracking event="thirdQuartile"><![CDATA[https://example.com/third-quartile]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://example.com/complete]]></Tracking>
+            </TrackingEvents>
+            <Icons>
+              <Icon program="vastlint-demo" width="80" height="40" xPosition="left" yPosition="top" offset="00:00:02" duration="00:00:05">
+                <StaticResource creativeType="image/png"><![CDATA[https://dummyimage.com/80x40/e7e7e7/111111.png&text=ICON]]></StaticResource>
+                <IconClicks>
+                  <IconClickThrough><![CDATA[https://example.com/icon-click]]></IconClickThrough>
+                  <IconClickFallbackImages>
+                    <IconClickFallbackImage width="160" height="80">
+                      <AltText>Open advertiser site</AltText>
+                      <StaticResource creativeType="image/png"><![CDATA[https://dummyimage.com/160x80/111111/ffffff.png&text=Tap+to+Open]]></StaticResource>
+                    </IconClickFallbackImage>
+                  </IconClickFallbackImages>
+                </IconClicks>
+              </Icon>
+            </Icons>
+            <VideoClicks>
+              <ClickThrough><![CDATA[https://example.com/clickthrough]]></ClickThrough>
+            </VideoClicks>
+            <MediaFiles>
+              <MediaFile delivery="progressive" type="video/webm" width="640" height="360" bitrate="800"><![CDATA[/fixtures/video/360p30.webm]]></MediaFile>
+              <MediaFile delivery="progressive" type="video/mp4" width="640" height="360" bitrate="1200"><![CDATA[/fixtures/video/360p30.mp4]]></MediaFile>
+            </MediaFiles>
+          </Linear>
+        </Creative>
+      </Creatives>
+    </InLine>
+  </Ad>
+</VAST>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="2.0">
+  <Ad id="nonlinear-overlay-1">
+    <InLine>
+      <AdSystem>vastlint-demo</AdSystem>
+      <AdTitle>non-linear overlay scenario</AdTitle>
+      <Impression><![CDATA[https://example.com/impression]]></Impression>
+      <Creatives>
+        <Creative>
+          <NonLinearAds>
+            <NonLinear width="480" height="120" minSuggestedDuration="00:00:05" scalable="true" maintainAspectRatio="true">
+              <StaticResource creativeType="image/png"><![CDATA[https://dummyimage.com/480x120/111111/ffffff.png&text=Overlay+Creative]]></StaticResource>
+              <NonLinearClickThrough><![CDATA[https://example.com/nonlinear-click]]></NonLinearClickThrough>
+            </NonLinear>
+          </NonLinearAds>
+        </Creative>
+      </Creatives>
+    </InLine>
+  </Ad>
+</VAST>

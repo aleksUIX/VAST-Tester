@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.1">
+  <Ad id="wrapper-signals-1" sequence="1">
+    <Wrapper followAdditionalWrappers="0" allowMultipleAds="1" fallbackOnNoAd="0">
+      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <Error><![CDATA[https://example.com/error?code=%%ERRORCODE%%]]></Error>
+      <Impression><![CDATA[https://example.com/wrapper-impression]]></Impression>
+      <ViewableImpression id="wrapper-viewability-1">
+        <Viewable><![CDATA[https://example.com/wrapper-viewable]]></Viewable>
+        <NotViewable><![CDATA[https://example.com/wrapper-not-viewable]]></NotViewable>
+      </ViewableImpression>
+      <Creatives>
+        <Creative id="wrapper-creative-1">
+          <Linear>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://example.com/wrapper-start]]></Tracking>
+              <Tracking event="firstQuartile"><![CDATA[https://example.com/wrapper-first-quartile]]></Tracking>
+              <Tracking event="midpoint"><![CDATA[https://example.com/wrapper-midpoint]]></Tracking>
+              <Tracking event="thirdQuartile"><![CDATA[https://example.com/wrapper-third-quartile]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://example.com/wrapper-complete]]></Tracking>
+            </TrackingEvents>
+            <VideoClicks>
+              <ClickTracking><![CDATA[https://example.com/wrapper-click]]></ClickTracking>
+            </VideoClicks>
+          </Linear>
+        </Creative>
+      </Creatives>
+      <VASTAdTagURI><![CDATA[https://example.com/vast/inline-next-hop.xml]]></VASTAdTagURI>
+    </Wrapper>
+  </Ad>
+</VAST>
