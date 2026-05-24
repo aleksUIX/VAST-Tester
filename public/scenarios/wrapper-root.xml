@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.0">
+  <Ad id="wrapper-root-1" sequence="1">
+    <Wrapper>
+      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <VASTAdTagURI><![CDATA[/scenarios/wrapper-inline.xml]]></VASTAdTagURI>
+      <Impression><![CDATA[https://example.com/wrapper-impression]]></Impression>
+      <Creatives>
+        <Creative id="wrapper-creative-1">
+          <Linear>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://example.com/wrapper-start]]></Tracking>
+            </TrackingEvents>
+            <VideoClicks>
+              <ClickTracking><![CDATA[https://example.com/wrapper-click]]></ClickTracking>
+            </VideoClicks>
+          </Linear>
+        </Creative>
+      </Creatives>
+    </Wrapper>
+  </Ad>
+</VAST>

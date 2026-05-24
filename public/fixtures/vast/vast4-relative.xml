@@ -19,7 +19,7 @@
           <Linear>
             <Duration>00:00:17.320</Duration>
             <AdParameters>
-              <![CDATA[{ "buttonForegroundColor": "white", "buttonBackgroundColor": "black" }]]>
+              <![CDATA[{ "buttonForegroundColor": "white", "buttonBackgroundColor": "black", "videoUrl": "/fixtures/video/360p30.mp4", "clickUrl": "https://example.com/" }]]>
             </AdParameters>
             <MediaFiles>
               <MediaFile delivery="progressive" type="application/javascript" width="16" height="9" apiFramework="VPAID">
@@ -36,7 +36,7 @@
         </Creative>
       </Creatives>
       <AdVerifications>
-        <Verification vendor="iabtechlab.com-omid">
+        <Verification vendor="vastlint.org-omid-demo">
           <JavaScriptResource apiFramework="omid">
             <![CDATA[/fixtures/omid/omid-validation-verification-script-v1.js]]>
           </JavaScriptResource>

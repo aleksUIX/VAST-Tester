@@ -1,79 +1,36 @@
 {
-  "name": "VAST-Tester",
-  "version": "0.0.0",
-  "description": "Tests IAB VAST ads.",
+  "name": "vast-tester-aleksuix",
+  "version": "0.1.0",
+  "description": "Modern VAST tester built on top of local vastlint packages.",
   "private": true,
-  "homepage": "https://vasttester.iabtechlab.com/",
-  "repository": "InteractiveAdvertisingBureau/VAST-Tester",
+  "type": "module",
   "license": "Apache-2.0",
   "engines": {
-    "node": ">=12",
-    "yarn": ">=1.22.10"
+    "node": ">=18"
   },
-  "browserslist": [
-    ">0.2%",
-    "not dead",
-    "not ie <= 11",
-    "not op_mini all"
-  ],
   "scripts": {
-    "start": "react-scripts start",
-    "clean": "rimraf build",
-    "build": "yarn run clean && react-scripts build",
-    "test": "yarn run lint",
-    "lint": "eslint \"src/**/*.js\"",
-    "format": "prettier-eslint --write \"$PWD/src/**/*.js\"",
-    "prepare": "husky install"
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "cf:login": "npx wrangler login",
+    "cf:pages:create": "npx wrangler pages project create iab-tech-lab-vast-tester --production-branch=master",
+    "deploy:pages": "npm run build && npx wrangler pages deploy dist --project-name=iab-tech-lab-vast-tester --branch=master",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "base16": "^1.0.0",
-    "date-fns": "^2.22.1",
-    "file-saver": "^2.0.5",
-    "font-awesome": "^4.7.0",
-    "iab-vast-loader": "^2.5.1",
-    "lodash-es": "^4.17.21",
-    "lower-case-first": "^2.0.2",
-    "prop-types": "^15.7.2",
-    "qs": "^6.10.1",
-    "react": "^17.0.2",
-    "react-collapsible": "^2.8.3",
-    "react-copy-to-clipboard": "^5.0.3",
-    "react-dom": "^17.0.2",
-    "react-fontawesome": "^1.6.1",
-    "react-json-tree": "^0.15.0",
-    "react-redux": "^7.2.4",
-    "react-router-dom": "^5.0.1",
-    "react-tabs": "^3.2.2",
-    "react-textarea-autosize": "^8.3.3",
-    "react-toggle": "^4.1.2",
-    "redux": "^4.1.0",
-    "redux-actions": "^2.6.5",
-    "redux-logger": "^3.0.6",
-    "redux-observable": "^2.0.0-rc.2",
-    "reset-css": "^5.0.1",
-    "rxjs": "^7.1.0",
-    "serialize-error": "^8.1.0",
-    "upper-case-first": "^2.0.2"
+    "jszip": "^3.10.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "vastlint": "file:../vastlint/npm",
+    "vastlint-client": "file:../vastlint/packages/vastlint-client",
+    "vastlint-react": "file:../vastlint/packages/vastlint-react"
   },
   "devDependencies": {
-    "eslint": "^7.28.0",
-    "eslint-config-standard": "^16.0.3",
-    "eslint-plugin-import": "^2.23.4",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-promise": "^5.1.0",
-    "eslint-plugin-react": "^7.24.0",
-    "eslint-plugin-simple-import-sort": "^7.0.0",
-    "husky": "^6.0.0",
-    "lint-staged": "^11.0.0",
-    "node-sass": "^5.0.0",
-    "prettier-eslint-cli": "^5.0.1",
-    "react-scripts": "^4.0.3",
-    "redux-devtools-extension": "^2.13.9",
-    "rimraf": "^3.0.2"
-  },
-  "lint-staged": {
-    "src/**/*.js": [
-      "prettier-eslint --write"
-    ]
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^5.0.4",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.7",
+    "vite-plugin-top-level-await": "^1.6.0",
+    "vite-plugin-wasm": "^3.5.0"
   }
 }

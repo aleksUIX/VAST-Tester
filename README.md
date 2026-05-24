@@ -1,94 +1,109 @@
-Please review the IAB Tech Lab Open Source Initiative Governance guidelines [here](http://iabtechlab.com/opensource) for contributing to this project.
+# VAST Tester AleksUIX
 
-# IAB Tech Lab VAST Tester
+A modern, vastlint-powered VAST validator, debugger, and QA workbench.
 
-[![CircleCI](https://circleci.com/gh/InteractiveAdvertisingBureau/VAST-Tester.svg?style=shield)](https://circleci.com/gh/InteractiveAdvertisingBureau/VAST-Tester) [![JavaScript Standard Style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg)](https://standardjs.com/)
+If you are looking for a new and improved alternative to the IAB Tech Lab VAST Tester, this repository is meant to be that starting point. It keeps the familiar idea of a browser-based VAST tester, but adds deeper validation, wrapper inspection, playback diagnostics, tracking visibility, and shareable findings for real ad-tech workflows.
 
-Tests IAB VAST ads. Contributed by the [DoubleVerify](https://www.doubleverify.com/) team.
+This project is built on top of [`vastlint`](https://github.com/aleksUIX/vastlint), the Rust-based VAST validation engine behind [vastlint.org](https://vastlint.org). It is an independent open-source project and is not affiliated with or endorsed by IAB Tech Lab.
 
-This tool is also hosted by IAB Tech Lab at [[vasttester.iabtechlab.com](https://tools.iabtechlab.com/resourcecenter/vastTagValidator)]([https://vasttester.iabtechlab.com](https://tools.iabtechlab.com/resourcecenter/vastTagValidator)).
+## Looking for the IAB Tech Lab VAST Tester?
+
+If that search term brought you here, the short version is this: this repo is an open-source, modernized VAST tester built for teams who want more than a legacy pass/fail checker.
+
+It is designed for buyers, sellers, SSPs, DSPs, SSAI teams, QA engineers, and ad-ops workflows that need to:
+
+- validate VAST XML against the IAB VAST specification
+- inspect wrapper chains and resolved ads in detail
+- understand tracking, macro expansion, and playback behavior
+- share findings quickly with partners, vendors, or internal engineering teams
+
+## What This Repo Does
+
+- Validate pasted VAST XML or a remote VAST URL
+- Auto-fix deterministic issues that `vastlint` can repair
+- Resolve wrapper chains through `vastlint-client`
+- Inspect wrapper hops, resolved ads, media files, and rule findings in one UI
+- Display findings inline while editing XML
+- Review playback-oriented runtime signals, tracking waterfalls, and macro previews
+- Switch between different compliance-oriented validation profiles
+- Export reports and copy error summaries for partner debugging
+
+## Built on `vastlint`
+
+This UI is the interactive frontend layer for the broader `vastlint` ecosystem.
+
+- Core project: [github.com/aleksUIX/vastlint](https://github.com/aleksUIX/vastlint)
+- Hosted web validator: [vastlint.org](https://vastlint.org)
+- npm package: [npmjs.com/package/vastlint](https://www.npmjs.com/package/vastlint)
+
+Use this repo when you want a browser-first debugging workflow. Use `vastlint` directly when you want CLI automation, CI checks, MCP integration, or to embed VAST validation inside another system.
 
 ## Getting Started
+
+This app currently depends on local file-based packages from a sibling `vastlint` checkout in `../vastlint`.
+
+Recommended workspace layout:
+
+```text
+your-workspace/
+	vastlint/
+	VAST-Tester/
+```
 
 Install dependencies:
 
 ```bash
-yarn
+npm install
 ```
 
-Get developing:
+Start the dev server:
 
 ```bash
-yarn start
+npm run dev
 ```
 
 Create a production build:
 
 ```bash
-yarn run build
+npm run build
 ```
 
-## Architecture
+## Deploy
 
-This is a [React](https://reactjs.org/) app bootstrapped with
-[Create React App](https://github.com/facebookincubator/create-react-app).
-All state is maintained using [Redux](https://redux.js.org/). Side effects of
-state mutation are modeled using
-[redux-observable](https://redux-observable.js.org/).
+This repo is intended to stay separate from `vastlint-infra` and deploy directly to Cloudflare Pages on the custom hostname `iab-tech-lab-vast-tester.vastlint.org`.
 
-There are subdirectories for the standard React-Redux model:
+One-time Cloudflare auth on your machine:
 
--   [`components/`](src/components/): React components (without Redux);
--   [`containers/`](src/containers/): React components connected to Redux's
-    store;
--   [`actions/`](src/actions/): Redux action definitions;
--   [`reducers/`](src/reducers/): Redux reducers;
--   [`epics/`](src/epics/): epics for redux-observable;
--   [`middleware/`](src/middleware/): Redux middleware.
+```bash
+npm run cf:login
+```
 
-In addition to those, there are also:
+One-time Pages project creation:
 
--   [`util/`](src/util/): various utility modules;
--   [`style/`](src/style): [Sass](https://sass-lang.com/) style sheets for
-    the app.
+```bash
+npm run cf:pages:create
+```
 
-More detailed documentation will be added at a later stage. For now, we suggest
-exploring the source code.
+Deploy the current branch from your local machine:
 
-## Debugging
+```bash
+npm run deploy:pages
+```
 
-During development, you can use:
+After the first successful deploy, attach the custom domain in Cloudflare Pages:
 
--   [React DevTools](https://github.com/facebook/react-devtools)
-    for React's DOM;
--   [Redux DevTools](https://github.com/zalmoxisus/redux-devtools-extension)
-    for Redux actions and redux-observable effects;
--   [Logger for Redux](https://github.com/evgenyrodionov/redux-logger)
-    by setting `localStorage.reduxLogger` to `true`;
+```text
+iab-tech-lab-vast-tester.vastlint.org
+```
 
-## To Do
+This workflow avoids GitHub Actions and repo secrets while keeping deployment repeatable from the local CLI.
 
--   OM SDK in-app support
--   Resize support
--   Canned test scenarios
--   Reporting and recommendations
--   VAST validation
+## Why This Exists
 
-## Contributing
+The goal is not to reproduce the old tester one-to-one. The goal is to provide a stronger open-source workflow for anyone searching for an IAB Tech Lab VAST Tester style tool, but needing more visibility into why a tag fails, how wrappers resolve, what media is actually returned, and where tracking or compliance issues appear.
 
-We welcome pull requests for bug fixes and new features.
+## Notes
 
-## License
-
-Copyright 2021 IAB Technology Laboratory, Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-<http://www.apache.org/licenses/LICENSE-2.0>.
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+- The app depends on local file-based packages in `../vastlint`.
+- For URL-backed validation, the target endpoint must allow browser-side fetching from your local dev or deployed origin.
+- Browser playback results can vary based on codec support and remote asset permissions.

@@ -8,9 +8,13 @@
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store
+.env
+.env.*
+!.env.example
 .env.local
 .env.development.local
 .env.test.local
@@ -22,3 +26,8 @@ yarn-error.log*
 
 .envrc
 .idea/
+
+# TypeScript / Vite build output
+*.tsbuildinfo
+/vite.config.js
+/vite.config.d.ts
