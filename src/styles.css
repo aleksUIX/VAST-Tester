@@ -780,6 +780,7 @@ code {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
   gap: 16px;
+  align-items: start;
 }
 
 .runner-stage,
@@ -787,6 +788,8 @@ code {
 .preview-card {
   display: grid;
   gap: 14px;
+  align-content: start;
+  min-width: 0;
 }
 
 .runner-status-grid,
@@ -833,6 +836,11 @@ code {
 }
 
 .timeline-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  max-height: 640px;
+  min-height: 0;
+  overflow: hidden;
   border: 1px solid var(--line);
   background: #fbfbfb;
 }
@@ -858,6 +866,8 @@ code {
 
 .timeline-list {
   display: grid;
+  min-height: 0;
+  overflow: auto;
 }
 
 .timeline-item {
@@ -877,6 +887,15 @@ code {
   justify-content: space-between;
   gap: 10px;
   align-items: flex-start;
+}
+
+.timeline-topline strong,
+.timeline-topline span {
+  min-width: 0;
+}
+
+.timeline-topline strong {
+  overflow-wrap: anywhere;
 }
 
 .timeline-topline span {
@@ -912,6 +931,7 @@ code {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-size: 0.74rem;
+  white-space: nowrap;
 }
 
 .muted-chip {
@@ -1280,6 +1300,7 @@ code {
   align-items: center;
   justify-content: center;
   border-radius: 0;
+  white-space: nowrap;
 }
 
 .badge {
@@ -1430,6 +1451,7 @@ code {
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  flex: 0 0 auto;
 }
 
 .pill.good {
