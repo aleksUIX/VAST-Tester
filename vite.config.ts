@@ -5,6 +5,9 @@ import wasm from "vite-plugin-wasm";
 
 export default defineConfig({
   plugins: [react(), wasm(), topLevelAwait()],
+  resolve: {
+    dedupe: ["react", "react-dom"],
+  },
   server: {
     port: 5174,
   },
