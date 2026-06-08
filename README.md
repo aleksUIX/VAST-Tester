@@ -34,21 +34,14 @@ This UI is the interactive frontend layer for the broader `vastlint` ecosystem.
 
 - Core project: [github.com/aleksUIX/vastlint](https://github.com/aleksUIX/vastlint)
 - Hosted web validator: [vastlint.org](https://vastlint.org)
-- npm package: [npmjs.com/package/vastlint](https://www.npmjs.com/package/vastlint)
+- npm packages:
+	- [npmjs.com/package/vastlint](https://www.npmjs.com/package/vastlint)
+	- [npmjs.com/package/vastlint-client](https://www.npmjs.com/package/vastlint-client)
+	- [npmjs.com/package/vastlint-react](https://www.npmjs.com/package/vastlint-react)
 
 Use this repo when you want a browser-first debugging workflow. Use `vastlint` directly when you want CLI automation, CI checks, MCP integration, or to embed VAST validation inside another system.
 
 ## Getting Started
-
-This app currently depends on local file-based packages from a sibling `vastlint` checkout in `../vastlint`.
-
-Recommended workspace layout:
-
-```text
-your-workspace/
-	vastlint/
-	VAST-Tester/
-```
 
 Install dependencies:
 
@@ -104,6 +97,6 @@ The goal is not to reproduce the old tester one-to-one. The goal is to provide a
 
 ## Notes
 
-- The app depends on local file-based packages in `../vastlint`.
+- The app installs `vastlint`, `vastlint-client`, and `vastlint-react` directly from npm.
 - For URL-backed validation, the target endpoint must allow browser-side fetching from your local dev or deployed origin.
 - Browser playback results can vary based on codec support and remote asset permissions.

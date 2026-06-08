@@ -1,7 +1,7 @@
 {
   "name": "vast-tester-aleksuix",
   "version": "0.1.0",
-  "description": "Modern VAST tester built on top of local vastlint packages.",
+  "description": "Modern VAST tester built on top of published vastlint packages.",
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
@@ -20,9 +20,9 @@
     "jszip": "^3.10.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "vastlint": "file:../vastlint/npm",
-    "vastlint-client": "file:../vastlint/packages/vastlint-client",
-    "vastlint-react": "file:../vastlint/packages/vastlint-react"
+    "vastlint": "0.4.21",
+    "vastlint-client": "0.4.21",
+    "vastlint-react": "0.4.21"
   },
   "devDependencies": {
     "@types/react": "^19.2.2",

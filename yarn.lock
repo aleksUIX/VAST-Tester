@@ -529,7 +529,7 @@ react-refresh@^0.18.0:
   resolved "https://registry.npmjs.org/react-refresh/-/react-refresh-0.18.0.tgz"
   integrity sha512-QgT5//D3jfjJb6Gsjxv0Slpj23ip+HtOpnNgnb2S5zU3CB26G/IDPGoy4RJB42wzFE46DRsstbW6tKHoKbhAxw==
 
-react@^19.2.0, react@^19.2.6:
+react@^19.2.0, react@^19.2.6, react@>=18:
   version "19.2.6"
   resolved "https://registry.npmjs.org/react/-/react-19.2.6.tgz"
   integrity sha512-sfWGGfavi0xr8Pg0sVsyHMAOziVYKgPLNrS7ig+ivMNb3wbCBw3KxtflsGBAwD3gYQlE/AEZsTLgToRrSCjb0Q==
@@ -644,21 +644,24 @@ uuid@10.0.0:
   resolved "https://registry.npmjs.org/uuid/-/uuid-10.0.0.tgz"
   integrity sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ==
 
-"vastlint-client@file:../vastlint/packages/vastlint-client":
-  version "0.1.0"
-  resolved "file:../vastlint/packages/vastlint-client"
+vastlint-client@^0.4.21, vastlint-client@0.4.21:
+  version "0.4.21"
+  resolved "https://registry.npmjs.org/vastlint-client/-/vastlint-client-0.4.21.tgz"
+  integrity sha512-f5ZELBfnqzh2BfZzBy7pfMX7vKOkw+lfH5J2xgTcD0taxFMzt+78y7Mnch4999nEUIluQXIuoTjRP7B00zSKnQ==
   dependencies:
-    vastlint "file:../../npm"
+    vastlint "^0.4.21"
 
-"vastlint-react@file:../vastlint/packages/vastlint-react":
-  version "0.1.0"
-  resolved "file:../vastlint/packages/vastlint-react"
+vastlint-react@0.4.21:
+  version "0.4.21"
+  resolved "https://registry.npmjs.org/vastlint-react/-/vastlint-react-0.4.21.tgz"
+  integrity sha512-1h/RaAYe2DTdNS3EGna5NEsTqt5IWVC+uaSaw6rC2rbiOK80BKJMWvN4xm+I401Lttoo2UPLlMs4Zq8j7nuXUg==
   dependencies:
-    vastlint-client "file:../vastlint-client"
+    vastlint-client "^0.4.21"
 
-"vastlint@file:../vastlint/npm":
-  version "0.4.17"
-  resolved "file:../vastlint/npm"
+vastlint@^0.4.21, vastlint@0.4.21:
+  version "0.4.21"
+  resolved "https://registry.npmjs.org/vastlint/-/vastlint-0.4.21.tgz"
+  integrity sha512-+of4BnsxnczRMV66/XLmM1ohaf/S51qipNFIikvBqADiY/OPwRQGH0mtKpO1FJZ7fSFuR7ModFpNE0RpiFNqEQ==
 
 vite-plugin-top-level-await@^1.6.0:
   version "1.6.0"
