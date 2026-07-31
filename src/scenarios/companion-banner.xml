@@ -30,7 +30,7 @@
             <Companion id="companion-1" width="300" height="250">
               <StaticResource creativeType="image/png"><![CDATA[https://dummyimage.com/300x250/e6e6e6/111111.png&text=Companion+Banner]]></StaticResource>
               <CompanionClickThrough><![CDATA[https://example.com/companion-click]]></CompanionClickThrough>
-              <CompanionClickTracking><![CDATA[https://example.com/companion-click-track]]></CompanionClickTracking>
+              <CompanionClickTracking id="companion-click-track-1"><![CDATA[https://example.com/companion-click-track]]></CompanionClickTracking>
             </Companion>
           </CompanionAds>
         </Creative>
