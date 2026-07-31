@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode, Ref } from "react";
 import JSZip from "jszip";
 import { useVastPlayback, useVastSession, useVastTracker } from "vastlint-react";
 import adIdentityXml from "./scenarios/ad-identity.xml?raw";
@@ -37,6 +38,29 @@ import type {
 
 type SourceMode = "xml" | "url";
 type ActionMode = "validate" | "resolve" | "fix";
+type SectionId = "findings" | "wrappers" | "resolved" | "playback" | "tracking" | "runtime" | "macros" | "export";
+
+const SECTION_IDS: readonly SectionId[] = [
+  "findings",
+  "wrappers",
+  "resolved",
+  "playback",
+  "tracking",
+  "runtime",
+  "macros",
+  "export",
+];
+
+const COLLAPSED_SECTIONS: Record<SectionId, boolean> = {
+  findings: true,
+  wrappers: false,
+  resolved: false,
+  playback: false,
+  tracking: false,
+  runtime: false,
+  macros: false,
+  export: false,
+};
 type ComplianceProfileId = "strict-iab" | "ctv-safe" | "ssai-safe" | "legacy-player";
 type ScenarioGroupId = "core" | "creative-types" | "measurement" | "ctv-ssai";
 type ScenarioActionFilter = "all" | ActionMode;
@@ -484,6 +508,8 @@ const SCENARIO_GROUPS: readonly ScenarioGroupDefinition[] = [
     description: "Identity, mezzanine, and captioning samples for modern distribution workflows.",
   },
 ];
+
+const SCENARIO_ROW_LIMIT = 5;
 
 const GROUPED_SCENARIO_PRESETS = SCENARIO_GROUPS.map((group) => ({
   ...group,
@@ -1448,6 +1474,44 @@ function buildTrackingFetch(documentUrls: readonly string[]): typeof fetch {
   };
 }
 
+const VAST_PROXY_ENDPOINT = "https://vastlint.org/api/vast-proxy";
+
+async function fetchVastDocumentWithProxyFallback(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const targetUrl = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+
+  try {
+    const response = await globalThis.fetch(input, init);
+    if (response.ok) {
+      const text = await response.text();
+      if (text.trim().startsWith("<")) {
+        return new Response(text, { status: response.status, statusText: response.statusText, headers: response.headers });
+      }
+      throw new Error("Direct fetch returned a non-XML response");
+    }
+  } catch {
+    // Fall through to the proxy below — direct browser fetch failed or was intercepted.
+  }
+
+  const proxyResponse = await globalThis.fetch(`${VAST_PROXY_ENDPOINT}?url=${encodeURIComponent(targetUrl)}`, {
+    signal: init?.signal ?? undefined,
+  });
+
+  if (!proxyResponse.ok) {
+    let message = `Proxy fetch failed with HTTP ${proxyResponse.status}`;
+    try {
+      const errorBody = (await proxyResponse.json()) as { error?: unknown };
+      if (typeof errorBody.error === "string") {
+        message = errorBody.error;
+      }
+    } catch {
+      // Proxy error body wasn't JSON — keep the default message.
+    }
+    throw new Error(message);
+  }
+
+  return proxyResponse;
+}
+
 function buildPlayableMediaUrl(mediaUrl: string | null) {
   if (!mediaUrl) {
     return null;
@@ -1661,6 +1725,8 @@ function App() {
   const [scenarioVersionFilter, setScenarioVersionFilter] = useState("all");
   const [scenarioActionFilter, setScenarioActionFilter] = useState<ScenarioActionFilter>("all");
   const [scenarioSurfaceFilter, setScenarioSurfaceFilter] = useState("all");
+  const [expandedScenarioGroups, setExpandedScenarioGroups] = useState<Record<string, boolean>>({});
+  const [scenarioLibraryOpen, setScenarioLibraryOpen] = useState(false);
   const [lastRun, setLastRun] = useState<RunRequest>({
     id: 1,
     sourceMode: sharedSession?.sourceMode ?? "xml",
@@ -1672,6 +1738,7 @@ function App() {
   const [reportNotice, setReportNotice] = useState<string | null>(null);
   const [selectedComplianceProfileId, setSelectedComplianceProfileId] = useState<ComplianceProfileId>(sharedSession?.selectedComplianceProfileId ?? "strict-iab");
   const [selectedFindingLine, setSelectedFindingLine] = useState<number | null>(null);
+  const [openSections, setOpenSections] = useState<Record<SectionId, boolean>>(COLLAPSED_SECTIONS);
   const [runnerTimeline, setRunnerTimeline] = useState<TimelineEntry[]>([]);
   const [editorScrollTop, setEditorScrollTop] = useState(0);
   const findingsSectionRef = useRef<HTMLElement | null>(null);
@@ -1705,6 +1772,7 @@ function App() {
     autoLoad: false,
     autoValidate: false,
     validateOptions: activeValidateOptions,
+    fetch: fetchVastDocumentWithProxyFallback,
   });
 
   useEffect(() => {
@@ -1712,6 +1780,10 @@ function App() {
 
     async function runCurrentAction() {
       setRunError(null);
+
+      if (lastRun.payload.trim().length === 0) {
+        return;
+      }
 
       try {
         if (lastRun.action === "fix") {
@@ -1746,10 +1818,11 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [lastRun.id, lastRun.action, session]);
+  }, [lastRun.id, lastRun.action, lastRun.payload, session]);
 
   const issues = snapshot.validation?.issues ?? [];
   const severity = countBySeverity(issues);
+  const suspectedBlockedFetch = lastRun.sourceMode === "url" && issues.some((issue) => issue.id === "VAST-2.0-root-element");
   const resolvedAds = snapshot.resolvedAds;
   const activeScenario = SCENARIO_PRESETS.find((scenario) => scenario.id === activeScenarioId) ?? null;
   const scenarioVersionOptions = useMemo(
@@ -1796,8 +1869,10 @@ function App() {
   const overviewTone = buildOverviewTone(snapshot.validation?.summary.valid ?? null, issues.length, resolvedAds.length);
   const activePayload = sourceMode === "xml" ? xmlDraft : urlDraft;
   const trimmedPayload = activePayload.trim();
-  const hasValidUrlInput = sourceMode === "url" ? isValidRemoteUrl(trimmedPayload) : true;
-  const canRun = sourceMode === "xml" ? trimmedPayload.length > 0 : hasValidUrlInput;
+  const urlDraftTrimmed = urlDraft.trim();
+  const urlDraftValid = isValidRemoteUrl(urlDraftTrimmed);
+  const hasClearableInput = xmlDraft.length > 0 || urlDraft.length > 0 || lastRun.payload.length > 0;
+  const canRun = sourceMode === "xml" ? trimmedPayload.length > 0 : urlDraftValid;
   const editorAnnotationsMatchPayload = sourceMode === "xml" && lastRun.sourceMode === "xml" && lastRun.payload === xmlDraft;
   const editorIssueMarkers = useMemo(
     () => editorAnnotationsMatchPayload ? buildEditorIssueMarkers(issues) : [],
@@ -2114,6 +2189,53 @@ function App() {
     }
   }, [runnerSnapshot.status]);
 
+  const sectionContentCounts = useMemo<Record<SectionId, number>>(() => ({
+    findings: issues.length,
+    wrappers: snapshot.wrapperChain.length,
+    resolved: inventoryAds.length,
+    playback: runnerSnapshot.resolvedAd ? 1 : 0,
+    tracking: trackingWaterfallRows.length,
+    runtime: runtimeInspection.verificationResources.length
+      + runtimeInspection.companions.length
+      + runtimeInspection.icons.length
+      + runtimeInspection.apiFrameworks.length,
+    macros: 0,
+    export: 0,
+  }), [
+    inventoryAds.length,
+    issues.length,
+    runnerSnapshot.resolvedAd,
+    runtimeInspection.apiFrameworks.length,
+    runtimeInspection.companions.length,
+    runtimeInspection.icons.length,
+    runtimeInspection.verificationResources.length,
+    snapshot.wrapperChain.length,
+    trackingWaterfallRows.length,
+  ]);
+  const sectionContentKey = SECTION_IDS.map((id) => `${id}:${String(sectionContentCounts[id])}`).join("|");
+
+  // Reveal a section as soon as a run gives it something to show. Keyed on the
+  // counts, so manually collapsing a section stays collapsed until they change.
+  useEffect(() => {
+    setOpenSections((current) => {
+      const next = { ...current };
+      let changed = false;
+
+      for (const id of SECTION_IDS) {
+        if (sectionContentCounts[id] > 0 && !current[id]) {
+          next[id] = true;
+          changed = true;
+        }
+      }
+
+      return changed ? next : current;
+    });
+  }, [sectionContentKey, sectionContentCounts]);
+
+  const toggleSection = (id: SectionId) => {
+    setOpenSections((current) => ({ ...current, [id]: !current[id] }));
+  };
+
   const appendRunnerTimeline = (kind: TimelineEntry["kind"], title: string, detail: string) => {
     runnerEventCounter.current += 1;
     setRunnerTimeline((current) => [
@@ -2135,16 +2257,21 @@ function App() {
     }));
   };
 
-  const runAction = (action: ActionMode) => {
-    const payload = (sourceMode === "xml" ? xmlDraft : urlDraft).trim();
+  const runAction = (action: ActionMode, modeOverride?: SourceMode) => {
+    const mode = modeOverride ?? sourceMode;
+    const payload = (mode === "xml" ? xmlDraft : urlDraft).trim();
     if (!payload) {
-      setRunError(sourceMode === "xml" ? "Paste VAST XML before running." : "Enter a VAST URL before running.");
+      setRunError(mode === "xml" ? "Paste VAST XML before running." : "Enter a VAST URL before running.");
       return;
     }
 
-    if (sourceMode === "url" && !isValidRemoteUrl(payload)) {
+    if (mode === "url" && !isValidRemoteUrl(payload)) {
       setRunError("Enter a full http:// or https:// VAST URL.");
       return;
+    }
+
+    if (modeOverride && modeOverride !== sourceMode) {
+      setSourceMode(modeOverride);
     }
 
     if (action !== "fix") {
@@ -2152,7 +2279,7 @@ function App() {
     }
 
     queueRun({
-      sourceMode,
+      sourceMode: mode,
       action,
       payload,
     });
@@ -2166,12 +2293,31 @@ function App() {
     setLastFix(null);
   };
 
+  const clearInputs = () => {
+    setSourceMode("xml");
+    setXmlDraft("");
+    setUrlDraft("");
+    setActiveScenarioId(null);
+    setRunError(null);
+    setLastFix(null);
+    setReportNotice(null);
+    setSelectedFindingLine(null);
+    setEditorScrollTop(0);
+    setOpenSections(COLLAPSED_SECTIONS);
+    queueRun({
+      sourceMode: "xml",
+      action: "validate",
+      payload: "",
+    });
+  };
+
   const runScenario = (scenario: ScenarioPreset) => {
     const payload = scenario.sourceMode === "url" ? buildScenarioUrl(scenario.payload) : absolutizeScenarioXmlLocalUrls(scenario.payload);
     setActiveScenarioId(scenario.id);
     setRunError(null);
     setLastFix(null);
     setSourceMode(scenario.sourceMode);
+    setScenarioLibraryOpen(false);
 
     if (scenario.sourceMode === "xml") {
       setXmlDraft(payload);
@@ -2524,6 +2670,7 @@ function App() {
     setSelectedFindingLine((current) => {
       const nextLine = current === line ? null : line;
       if (nextLine !== null) {
+        setOpenSections((sections) => (sections.findings ? sections : { ...sections, findings: true }));
         globalThis.requestAnimationFrame(() => {
           findingsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
         });
@@ -2535,188 +2682,113 @@ function App() {
 
   return (
     <div className="shell">
-      <div className="brand-bar">
-        <div className="brand-lockup">
-          <span className="proposal-label">Independent fork</span>
-          <strong className="brand-title">Next-Gen VAST Tester</strong>
-        </div>
-        <span className="brand-note">Built on the legacy IAB Tech Lab tester foundation and extended for modern VAST QA workflows.</span>
-      </div>
-      <div className="meta-strip" aria-label="Implementation summary">
-        <div>
-          <span>Coverage</span>
-          <strong>VAST 2.0-4.3</strong>
-        </div>
-        <div>
-          <span>Runtime</span>
-          <strong>vastlint / vastlint-client</strong>
-        </div>
-        <div>
-          <span>Interface</span>
-          <strong>Standalone forked workbench</strong>
-        </div>
-      </div>
-      <div className="banner fork-banner">
-        <strong>Forked from the legacy IAB Tech Lab VAST Tester workflow.</strong>
-        <span>
-          This build keeps the standalone tester identity, preserves the flatter review-oriented UI, and pushes the concept forward with vastlint-powered validation, deterministic repair, wrapper inspection, runtime QA, and partner-shareable diagnostics.
-        </span>
-      </div>
-      <header className="hero">
-        <div>
-          <p className="eyebrow">Independent evolution</p>
+      <header className="masthead">
+        <div className="masthead-copy">
           <h1>Next-Gen VAST Tester</h1>
           <p className="lede">
-            Built on the foundations of the legacy IAB Tech Lab VAST Tester and expanded into a separate vastlint-powered QA workbench for validation, repair, wrappers, playback, tracking, and shareable review.
+            An independent, vastlint-powered rebuild of the legacy IAB Tech Lab VAST Tester. Validation, deterministic
+            repair, wrapper inspection, playback and tracking QA, and partner-shareable reports across VAST 2.0-4.4.
           </p>
         </div>
-        <div className={`hero-panel tone-${overviewTone}`}>
-          <span className="hero-kicker">Current run</span>
-          <strong>{lastRun.sourceMode === "xml" ? "Editor XML" : "Remote URL"}</strong>
-          <span>{lastRun.action}</span>
-          <span>Status: {snapshot.status}</span>
-        </div>
+        <nav className="masthead-links" aria-label="Feedback">
+          <a href="https://github.com/aleksUIX/vastlint/issues/new" rel="noreferrer" target="_blank">
+            Report an issue
+          </a>
+          <a href="mailto:aleks@vastlint.org?subject=VAST%20Tester%20feedback">Send feedback</a>
+        </nav>
       </header>
 
-      <main className="workspace-grid">
-        <section className="panel input-panel">
-          <div className="panel-header">
-            <div>
-              <p className="section-label">Source</p>
-              <h2>Validation request</h2>
-            </div>
-            <div className="segment" role="tablist" aria-label="Source mode">
-              <button
-                className={sourceMode === "xml" ? "active" : ""}
-                onClick={() => setSourceMode("xml")}
-                type="button"
-              >
-                XML
-              </button>
-              <button
-                className={sourceMode === "url" ? "active" : ""}
-                onClick={() => setSourceMode("url")}
-                type="button"
-              >
-                URL
-              </button>
-            </div>
+      <div className={`statusbar tone-${overviewTone}`} aria-label="Run status">
+        <div className="statusbar-run">
+          <span className="status-dot" aria-hidden="true" />
+          <strong>{snapshot.status}</strong>
+          <span>
+            {lastRun.action} · {lastRun.sourceMode === "xml" ? "editor XML" : "remote URL"} · VAST{" "}
+            {snapshot.validation?.version ?? "n/a"} · {lastRun.payload.length} bytes
+          </span>
+        </div>
+        <div className="statusbar-metrics">
+          <Metric label="Errors" value={severity.error} accent={severity.error > 0 ? "error" : "neutral"} />
+          <Metric label="Warnings" value={severity.warning} accent={severity.warning > 0 ? "warning" : "neutral"} />
+          <Metric label="Info" value={severity.info} accent={severity.info > 0 ? "info" : "neutral"} />
+          <Metric label="Hops" value={snapshot.wrapperChain.length} accent="neutral" />
+          <Metric label="Ads" value={resolvedAds.length} accent="neutral" />
+          <Metric
+            label="Valid"
+            value={snapshot.validation ? (snapshot.validation.summary.valid ? "yes" : "no") : "n/a"}
+            accent={snapshot.validation ? (snapshot.validation.summary.valid ? "good" : "error") : "neutral"}
+          />
+        </div>
+      </div>
+
+      <main className="stack">
+        <section className="panel panel-static source-panel">
+          <div className="panel-head static">
+            <h2>Source</h2>
+            <span className="panel-meta">
+              <span className="tag">{sourceMode === "url" ? "Remote URL is active" : "Editor XML is active"}</span>
+            </span>
           </div>
 
-          <div className="scenario-block">
-            <div className="scenario-heading">
-              <p className="section-label">Scenario library</p>
-              <span>Version-aware presets grouped by baseline, creative, measurement, and CTV QA coverage.</span>
-            </div>
-            <div className="scenario-toolbar">
-              <div className="scenario-toolbar-copy">
-                <strong>
-                  Showing {String(filteredScenarioCount)} of {String(SCENARIO_PRESETS.length)} presets
-                </strong>
-                <span>
-                  {activeScenario !== null && !activeScenarioMatchesFilters
-                    ? `Active scenario \"${activeScenario.label}\" is outside the current filter slice.`
-                    : "Load and run a canned demo in one click."}
-                </span>
+          <div className="panel-body">
+            <div className={`source-field${sourceMode === "url" ? " is-active" : ""}`}>
+              <div className="field-head">
+                <label className="field-label" htmlFor="vast-url">
+                  Remote VAST URL
+                </label>
+                <span className="field-note">Fetched in the browser, so CORS on the target endpoint applies</span>
               </div>
-              <div className="scenario-filter-grid">
-                <label className="scenario-filter">
-                  <span>Version</span>
-                  <select value={scenarioVersionFilter} onChange={(event) => setScenarioVersionFilter(event.target.value)}>
-                    <option value="all">All versions</option>
-                    {scenarioVersionOptions.map((versionLabel) => (
-                      <option key={versionLabel} value={versionLabel}>
-                        {versionLabel}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="scenario-filter">
-                  <span>Action</span>
-                  <select
-                    value={scenarioActionFilter}
-                    onChange={(event) => setScenarioActionFilter(event.target.value as ScenarioActionFilter)}
-                  >
-                    <option value="all">All actions</option>
-                    {scenarioActionOptions.map((action) => (
-                      <option key={action} value={action}>
-                        {ACTION_LABELS[action]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="scenario-filter">
-                  <span>Surface</span>
-                  <select value={scenarioSurfaceFilter} onChange={(event) => setScenarioSurfaceFilter(event.target.value)}>
-                    <option value="all">All surfaces</option>
-                    {scenarioSurfaceOptions.map((surface) => (
-                      <option key={surface} value={surface}>
-                        {surface}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button
-                  className="ghost scenario-reset"
-                  disabled={!hasScenarioFilters}
-                  onClick={() => {
-                    setScenarioVersionFilter("all");
-                    setScenarioActionFilter("all");
-                    setScenarioSurfaceFilter("all");
+              <div className="url-row">
+                <input
+                  id="vast-url"
+                  onChange={(event) => {
+                    setActiveScenarioId(null);
+                    setSourceMode("url");
+                    setUrlDraft(event.target.value);
                   }}
+                  onFocus={() => {
+                    if (urlDraftTrimmed.length > 0) {
+                      setSourceMode("url");
+                    }
+                  }}
+                  placeholder="https://example.com/vast.xml"
+                  type="url"
+                  value={urlDraft}
+                />
+                <button
+                  className="secondary"
+                  disabled={!urlDraftValid}
+                  onClick={() => runAction("validate", "url")}
                   type="button"
                 >
-                  Reset filters
+                  Fetch and validate
                 </button>
               </div>
-            </div>
-            <div className="scenario-groups">
-              {filteredScenarioGroups.map((group) => (
-                <section className="scenario-group" key={group.id}>
-                  <div className="scenario-heading scenario-subheading">
-                    <p className="section-label">{group.label}</p>
-                    <span>{group.description}</span>
-                  </div>
-                  <div className="scenario-grid">
-                    {group.scenarios.map((scenario) => (
-                      <button
-                        key={scenario.id}
-                        className={`scenario-button ${activeScenarioId === scenario.id ? "active" : ""}`}
-                        onClick={() => runScenario(scenario)}
-                        type="button"
-                      >
-                        <div className="scenario-meta-row">
-                          <span className="scenario-pill">{scenario.versionLabel}</span>
-                          <span className="scenario-pill">{scenario.action === "resolve" ? "Resolve" : "Validate"}</span>
-                        </div>
-                        <strong>{scenario.label}</strong>
-                        <span>{scenario.description}</span>
-                        <div className="scenario-tag-row">
-                          {scenario.focusAreas.map((focusArea) => (
-                            <span className="scenario-chip" key={`${scenario.id}-${focusArea}`}>
-                              {focusArea}
-                            </span>
-                          ))}
-                        </div>
-                        <small>{scenario.sourceMode === "url" ? "Local URL fixture" : "Inline XML fixture"}</small>
-                      </button>
-                    ))}
-                  </div>
-                </section>
-              ))}
-              {filteredScenarioCount === 0 ? (
-                <div className="scenario-empty">No presets match the current version, action, and surface filters.</div>
+              {urlDraftTrimmed.length > 0 && !urlDraftValid ? (
+                <p className="field-error">Use a full http:// or https:// URL. Relative paths are not accepted.</p>
               ) : null}
             </div>
-          </div>
 
-          {sourceMode === "xml" ? (
-            <label className="field">
-              <span>VAST XML</span>
-              <div className={`editor-shell ${editorAnnotationsStale ? "editor-stale" : ""}`}>
+            <div className="source-divider">
+              <span>or paste a tag</span>
+            </div>
+
+            <div className={`source-field${sourceMode === "xml" ? " is-active" : ""}`}>
+              <div className="field-head">
+                <label className="field-label" htmlFor="vast-xml">
+                  VAST XML
+                </label>
+                <span className="field-note">{xmlDraft.trim().length} bytes in the editor</span>
+              </div>
+              <div
+                className={`editor-shell ${editorIssueMarkers.length > 0 ? "has-markers" : ""} ${editorAnnotationsStale ? "editor-stale" : ""}`}
+              >
                 {editorIssueMarkers.length > 0 ? (
                   <div className="editor-overlay" aria-label="Inline issue markers">
-                    <div className="editor-scroll-layer" style={{ transform: `translateY(-${String(editorScrollTop)}px)` }}>
+                    <div
+                      className="editor-scroll-layer"
+                      style={{ transform: `translateY(-${String(editorScrollTop)}px)` }}
+                    >
                       {editorIssueMarkers.map((marker) => (
                         <div
                           className={`editor-inline-marker severity-${marker.severity}`}
@@ -2740,209 +2812,532 @@ function App() {
                   </div>
                 ) : null}
                 <textarea
+                  id="vast-xml"
                   ref={xmlTextareaRef}
                   className="annotated-textarea"
                   value={xmlDraft}
                   onChange={(event) => {
                     setActiveScenarioId(null);
+                    setSourceMode("xml");
                     setXmlDraft(event.target.value);
                   }}
+                  onFocus={() => setSourceMode("xml")}
                   onScroll={(event) => setEditorScrollTop(event.currentTarget.scrollTop)}
                   spellCheck={false}
                 />
               </div>
-            </label>
-          ) : (
-            <label className="field">
-              <span>Remote VAST URL</span>
-              <input
-                value={urlDraft}
-                onChange={(event) => {
-                  setActiveScenarioId(null);
-                  setUrlDraft(event.target.value);
-                }}
-                placeholder="https://example.com/vast.xml"
-                type="url"
-              />
-            </label>
-          )}
 
-          {sourceMode === "xml" && (editorAnnotationsStale || editorIssueMarkers.length > 0 || editorDocumentIssueCount > 0) ? (
-            <div className="editor-status-row">
-              {editorIssueMarkers.length > 0 ? (
-                <span className="editor-status-note">
-                  {editorIssueMarkers.length} inline marker{editorIssueMarkers.length === 1 ? "" : "s"} synced to the last validated XML. Click one to filter the findings panel.
+              {sourceMode === "xml" &&
+              (editorAnnotationsStale || editorIssueMarkers.length > 0 || editorDocumentIssueCount > 0) ? (
+                <div className="editor-status-row">
+                  {editorIssueMarkers.length > 0 ? (
+                    <span className="editor-status-note">
+                      {editorIssueMarkers.length} inline marker{editorIssueMarkers.length === 1 ? "" : "s"} synced to the
+                      last validated XML. Click one to filter findings.
+                    </span>
+                  ) : null}
+                  {editorDocumentIssueCount > 0 ? (
+                    <span className="editor-status-note">
+                      {editorDocumentIssueCount} document-level finding{editorDocumentIssueCount === 1 ? "" : "s"} appear
+                      only in the findings table.
+                    </span>
+                  ) : null}
+                  {editorAnnotationsStale ? (
+                    <span className="editor-status-note">
+                      Markers reflect the previous run. Validate again to refresh them.
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="action-row">
+              <button className="primary" disabled={!canRun} onClick={() => runAction("validate")} type="button">
+                Validate
+              </button>
+              <button className="secondary" disabled={!canRun} onClick={() => runAction("resolve")} type="button">
+                Resolve wrappers
+              </button>
+              <button className="secondary" disabled={!canRun} onClick={() => runAction("fix")} type="button">
+                Auto-fix
+              </button>
+              <button className="ghost" onClick={loadSample} type="button">
+                Load sample
+              </button>
+              <button className="ghost" disabled={!lastFix} onClick={applyFixedXml} type="button">
+                Apply fix and validate
+              </button>
+              <button
+                className="ghost clear-button"
+                disabled={!hasClearableInput}
+                onClick={clearInputs}
+                type="button"
+              >
+                Clear
+              </button>
+            </div>
+
+            {runError || snapshot.error ? <div className="banner error">{runError ?? snapshot.error?.message}</div> : null}
+
+            {suspectedBlockedFetch ? (
+              <div className="banner error">
+                The fetched response was not VAST XML (root element must be &lt;VAST&gt;). This request already retried
+                through the server-side proxy, so either the URL doesn&apos;t point directly at a VAST tag (e.g. it
+                returns VMAP, JSON, or an HTML page), or something is blocking both the direct and proxied fetch. Check
+                your browser&apos;s network tab for the raw response to confirm.
+              </div>
+            ) : null}
+
+            {lastFix ? (
+              <div className="banner success">
+                Applied {lastFix.applied.length} deterministic fix{lastFix.applied.length === 1 ? "" : "es"}. Remaining
+                issues: {lastFix.remaining.length}.
+              </div>
+            ) : null}
+
+            <div className="scenario-block">
+              <button
+                className="scenario-toggle"
+                aria-expanded={scenarioLibraryOpen}
+                onClick={() => setScenarioLibraryOpen((current) => !current)}
+                type="button"
+              >
+                <span className={`panel-chevron${scenarioLibraryOpen ? " open" : ""}`} aria-hidden="true">
+                  ▾
                 </span>
-              ) : null}
-              {editorDocumentIssueCount > 0 ? (
-                <span className="editor-status-note">
-                  {editorDocumentIssueCount} document-level finding{editorDocumentIssueCount === 1 ? "" : "s"} still appear only in the findings panel.
+                <strong>Scenario library</strong>
+                <span className="scenario-toggle-note">
+                  {activeScenario !== null
+                    ? `Active: ${activeScenario.label}`
+                    : `${String(SCENARIO_PRESETS.length)} presets across baseline, creative, measurement, and CTV coverage`}
                 </span>
+              </button>
+
+              {scenarioLibraryOpen ? (
+                <div className="scenario-body">
+                  <div className="scenario-filter-grid">
+                    <label className="scenario-filter">
+                      <span>Version</span>
+                      <select
+                        value={scenarioVersionFilter}
+                        onChange={(event) => setScenarioVersionFilter(event.target.value)}
+                      >
+                        <option value="all">All versions</option>
+                        {scenarioVersionOptions.map((versionLabel) => (
+                          <option key={versionLabel} value={versionLabel}>
+                            {versionLabel}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="scenario-filter">
+                      <span>Action</span>
+                      <select
+                        value={scenarioActionFilter}
+                        onChange={(event) => setScenarioActionFilter(event.target.value as ScenarioActionFilter)}
+                      >
+                        <option value="all">All actions</option>
+                        {scenarioActionOptions.map((action) => (
+                          <option key={action} value={action}>
+                            {ACTION_LABELS[action]}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="scenario-filter">
+                      <span>Surface</span>
+                      <select
+                        value={scenarioSurfaceFilter}
+                        onChange={(event) => setScenarioSurfaceFilter(event.target.value)}
+                      >
+                        <option value="all">All surfaces</option>
+                        {scenarioSurfaceOptions.map((surface) => (
+                          <option key={surface} value={surface}>
+                            {surface}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      className="ghost scenario-reset"
+                      disabled={!hasScenarioFilters}
+                      onClick={() => {
+                        setScenarioVersionFilter("all");
+                        setScenarioActionFilter("all");
+                        setScenarioSurfaceFilter("all");
+                      }}
+                      type="button"
+                    >
+                      Reset
+                    </button>
+                  </div>
+
+                  <p className="scenario-count">
+                    Showing {String(filteredScenarioCount)} of {String(SCENARIO_PRESETS.length)} presets.{" "}
+                    {activeScenario !== null && !activeScenarioMatchesFilters
+                      ? `Active scenario "${activeScenario.label}" sits outside the current filters.`
+                      : "Selecting one loads and runs it."}
+                  </p>
+
+                  <div className="scenario-groups">
+                    {filteredScenarioGroups.map((group) => {
+                      const isExpanded = expandedScenarioGroups[group.id] === true;
+                      const visibleScenarios = isExpanded
+                        ? group.scenarios
+                        : group.scenarios.slice(0, SCENARIO_ROW_LIMIT);
+                      const hiddenCount = group.scenarios.length - visibleScenarios.length;
+                      return (
+                        <section className="scenario-group" key={group.id}>
+                          <div className="scenario-group-head">
+                            <strong>{group.label}</strong>
+                            <span>{group.description}</span>
+                          </div>
+                          <div className="scenario-list">
+                            {visibleScenarios.map((scenario) => (
+                              <button
+                                key={scenario.id}
+                                className={`scenario-row ${activeScenarioId === scenario.id ? "active" : ""}`}
+                                onClick={() => runScenario(scenario)}
+                                title={scenario.description}
+                                type="button"
+                              >
+                                <span className="scenario-pill">{scenario.versionLabel}</span>
+                                <span className="scenario-pill">
+                                  {scenario.action === "resolve" ? "Resolve" : "Validate"}
+                                </span>
+                                <strong>{scenario.label}</strong>
+                                <span className="scenario-row-description">{scenario.description}</span>
+                                <span className="scenario-tag-row">
+                                  {scenario.focusAreas.map((focusArea) => (
+                                    <span className="scenario-chip" key={`${scenario.id}-${focusArea}`}>
+                                      {focusArea}
+                                    </span>
+                                  ))}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                          {group.scenarios.length > SCENARIO_ROW_LIMIT ? (
+                            <button
+                              className="scenario-expand-toggle"
+                              onClick={() =>
+                                setExpandedScenarioGroups((current) => ({ ...current, [group.id]: !isExpanded }))
+                              }
+                              type="button"
+                            >
+                              {isExpanded ? "Show fewer" : `Show ${String(hiddenCount)} more`}
+                            </button>
+                          ) : null}
+                        </section>
+                      );
+                    })}
+                    {filteredScenarioCount === 0 ? (
+                      <div className="scenario-empty">No presets match the current filters.</div>
+                    ) : null}
+                  </div>
+                </div>
               ) : null}
-              {editorAnnotationsStale ? (
-                <span className="editor-status-note">Inline markers reflect the previous validation run. Re-run validate to refresh them.</span>
-              ) : null}
             </div>
-          ) : null}
-
-          <div className="input-hint">
-            {sourceMode === "xml"
-              ? "Paste a full VAST document or wrapper response for validation."
-              : hasValidUrlInput || trimmedPayload.length === 0
-                ? "Use a full http:// or https:// URL that the browser can fetch directly."
-                : "Enter a full http:// or https:// VAST URL. Relative paths are not accepted."}
           </div>
-
-          <div className="action-row">
-            <button className="primary" disabled={!canRun} onClick={() => runAction("validate")} type="button">
-              Validate
-            </button>
-            <button className="secondary" disabled={!canRun} onClick={() => runAction("resolve")} type="button">
-              Resolve wrappers
-            </button>
-            <button className="secondary" disabled={!canRun} onClick={() => runAction("fix")} type="button">
-              Auto-fix
-            </button>
-            <button className="ghost" onClick={loadSample} type="button">
-              Load sample
-            </button>
-            <button className="ghost" disabled={!lastFix} onClick={applyFixedXml} type="button">
-              Apply and validate
-            </button>
-          </div>
-
-          <div className="microcopy">
-            URL mode runs browser-side fetches, so CORS on the target endpoint still applies.
-          </div>
-
-          {(runError || snapshot.error) ? (
-            <div className="banner error">
-              {runError ?? snapshot.error?.message}
-            </div>
-          ) : null}
-
-          {lastFix ? (
-            <div className="banner success">
-              Applied {lastFix.applied.length} deterministic fix{lastFix.applied.length === 1 ? "" : "es"}. Remaining issues: {lastFix.remaining.length}.
-            </div>
-          ) : null}
         </section>
 
-        <section className="panel metrics-panel">
-          <div className="panel-header compact">
-            <div>
-              <p className="section-label">Snapshot</p>
-              <h2>Run summary</h2>
-            </div>
-          </div>
-
-          <div className="metric-grid">
-            <StatCard label="Errors" value={severity.error} accent="error" />
-            <StatCard label="Warnings" value={severity.warning} accent="warning" />
-            <StatCard label="Info" value={severity.info} accent="info" />
-            <StatCard label="Wrapper hops" value={snapshot.wrapperChain.length} accent="neutral" />
-            <StatCard label="Resolved ads" value={resolvedAds.length} accent="neutral" />
-            <StatCard label="Valid" value={snapshot.validation?.summary.valid ? "yes" : "no"} accent={snapshot.validation?.summary.valid ? "good" : "error"} />
-          </div>
-
-          <dl className="summary-list">
-            <div>
-              <dt>Version</dt>
-              <dd>{snapshot.validation?.version ?? "unknown"}</dd>
-            </div>
-            <div>
-              <dt>Last action</dt>
-              <dd>{lastRun.action}</dd>
-            </div>
-            <div>
-              <dt>Source</dt>
-              <dd>{lastRun.sourceMode === "xml" ? "Editor XML" : "Remote URL"}</dd>
-            </div>
-            <div>
-              <dt>Input bytes</dt>
-              <dd>{lastRun.payload.length}</dd>
-            </div>
-          </dl>
-        </section>
-
-        <section className="panel report-panel">
-          <div className="panel-header compact">
-            <div>
-              <p className="section-label">Share / export</p>
-              <h2>Compact report</h2>
-            </div>
-          </div>
-
-          <div className="report-actions">
-            <button className="secondary" onClick={() => void copyShareLink()} type="button">
-              Copy share link
-            </button>
-            <button className="secondary" onClick={() => void copyReportSummary()} type="button">
-              Copy summary
-            </button>
-            <button className="secondary" onClick={() => void copyErrorFindings()} type="button">
-              Copy errors
-            </button>
-            <button className="ghost" onClick={() => downloadReport("txt")} type="button">
-              Download text
-            </button>
-            <button className="ghost" onClick={() => downloadReport("json")} type="button">
-              Download JSON
-            </button>
-            <button className="ghost" onClick={() => void downloadArtifactBundle()} type="button">
-              Download bundle
-            </button>
-          </div>
-
-          <p className="microcopy">
-            Selecting a profile reruns validation with profile-specific rule severity overrides. The active lens is included in copied reports, copied errors, and the artifact bundle.
-          </p>
-
-          <div className="profile-grid">
+        <Section
+          title="Findings"
+          open={openSections.findings}
+          onToggle={() => toggleSection("findings")}
+          panelRef={findingsSectionRef}
+          meta={
+            <>
+              {activeComplianceVerdict ? (
+                <span className={`pill profile-${activeComplianceVerdict.status}`}>
+                  {activeComplianceVerdict.label} {activeComplianceVerdict.status}
+                </span>
+              ) : null}
+              <span className="badge">{displayedIssues.length}</span>
+            </>
+          }
+        >
+          <div className="lens-row" role="group" aria-label="Compliance lens">
             {complianceVerdicts.map((profile) => (
               <button
-                className={`profile-card profile-${profile.status} ${profile.id === activeComplianceVerdict?.id ? "active" : ""}`}
+                className={`lens lens-${profile.status} ${profile.id === activeComplianceVerdict?.id ? "active" : ""}`}
                 key={profile.id}
                 onClick={() => setSelectedComplianceProfileId(profile.id)}
                 type="button"
               >
-                <div className="profile-topline">
-                  <strong>{profile.label}</strong>
-                  <span className={`pill profile-pill profile-${profile.status}`}>{profile.status}</span>
-                </div>
-                <p>{profile.description}</p>
-                <div className="profile-reasons">
-                  {profile.reasons.map((reason) => (
-                    <span key={`${profile.id}-${reason}`}>{reason}</span>
-                  ))}
-                </div>
+                <span>{profile.label}</span>
+                <span className={`pill profile-${profile.status}`}>{profile.status}</span>
               </button>
             ))}
           </div>
 
-          <pre className="report-preview">{reportSummary}</pre>
-
-          {reportNotice ? (
-            <div className="banner success report-banner">{reportNotice}</div>
+          {activeComplianceVerdict ? (
+            <p className="lens-note">
+              {activeComplianceVerdict.description} Severity overrides for this lens apply to the table below and to
+              every copied or exported report.
+            </p>
           ) : null}
-        </section>
 
-        <section className="panel playback-panel">
-          <div className="panel-header compact">
-            <div>
-              <p className="section-label">Runner</p>
-              <h2>Playback console</h2>
+          {activeComplianceVerdict && activeComplianceVerdict.reasons.length > 0 ? (
+            <ul className="lens-reasons">
+              {activeComplianceVerdict.reasons.map((reason) => (
+                <li key={`${activeComplianceVerdict.id}-${reason}`}>{reason}</li>
+              ))}
+            </ul>
+          ) : null}
+
+          {selectedFindingLine !== null ? (
+            <div className="findings-filter-row">
+              <span className="findings-filter-note">Filtered to line {selectedFindingLine} from an editor marker.</span>
+              <button className="ghost findings-clear" onClick={() => setSelectedFindingLine(null)} type="button">
+                Show all findings
+              </button>
             </div>
+          ) : null}
+
+          {displayedIssues.length === 0 ? (
+            <EmptyState title="No findings for the current run" body="Run validate or resolve to populate rule output." />
+          ) : (
+            <div className="table-surface">
+              <div className="table-head findings-columns">
+                <span>Severity</span>
+                <span>Rule</span>
+                <span>Location</span>
+                <span>Detail</span>
+              </div>
+              {displayedIssues.map((issue) => (
+                <article
+                  className={`table-row findings-columns severity-${issue.severity} ${selectedFindingLine !== null ? "findings-selected" : ""}`}
+                  key={`${issue.id}-${issue.path ?? "document"}-${issue.line ?? 0}-${issue.col ?? 0}`}
+                >
+                  <div className="table-cell" data-label="Severity">
+                    <span className="chip">{issue.severity}</span>
+                  </div>
+                  <strong className="table-cell" data-label="Rule">
+                    {issue.id}
+                  </strong>
+                  <span className="table-cell row-location" data-label="Location">
+                    {formatIssueLocation(issue)}
+                  </span>
+                  <div className="table-cell row-detail" data-label="Detail">
+                    <p>{issue.message}</p>
+                    <small>{issue.spec_ref}</small>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </Section>
+
+        <Section
+          title="Wrapper chain"
+          open={openSections.wrappers}
+          onToggle={() => toggleSection("wrappers")}
+          meta={<span className="badge">{snapshot.wrapperChain.length}</span>}
+        >
+          {snapshot.wrapperChain.length === 0 ? (
+            <EmptyState
+              title="No wrapper data"
+              body="Run resolve to inspect hop-by-hop fetch timing, validation counts, and metadata deltas."
+            />
+          ) : (
+            <div className="hop-grid">
+              {wrapperInspectors.map((hop) => (
+                <article className={`hop-card hop-${hop.tone}`} key={hop.id}>
+                  <div className="hop-topline">
+                    <strong>
+                      Hop {hop.hopIndex} · {hop.title}
+                    </strong>
+                    <span className={`pill hop-${hop.tone}`}>{hop.validationSummary}</span>
+                  </div>
+                  <p className="muted-copy">
+                    {hop.adType} · {hop.adSystem} · {hop.duration}
+                  </p>
+                  <div className="pill-row">
+                    {hop.stats.map((item) => (
+                      <span className="pill muted" key={`${hop.id}-${item}`}>
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                  <dl>
+                    <div>
+                      <dt>Source</dt>
+                      <dd>{hop.sourceLabel}</dd>
+                    </div>
+                    <div>
+                      <dt>Next hop</dt>
+                      <dd>{hop.nextHopLabel}</dd>
+                    </div>
+                    <div>
+                      <dt>Fetched</dt>
+                      <dd>
+                        {new Date(hop.fetchedAt).toLocaleTimeString()} · {hop.fetchMs} ms
+                      </dd>
+                    </div>
+                  </dl>
+                  <div className="compact-list hop-notes">
+                    {hop.changes.map((note) => (
+                      <span key={`${hop.id}-${note}`}>{note}</span>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </Section>
+
+        <Section
+          title="Resolved ads and assets"
+          open={openSections.resolved}
+          onToggle={() => toggleSection("resolved")}
+          meta={
+            <>
+              {assetAuditSummary.risk > 0 ? <span className="pill risk-risk">{assetAuditSummary.risk} high risk</span> : null}
+              <span className="badge">{inventoryAds.length}</span>
+            </>
+          }
+        >
+          {inventoryAds.length === 0 ? (
+            <EmptyState
+              title="No resolved ads"
+              body="Run resolve or prepare the runner to inspect the final ad pod and media inventory."
+            />
+          ) : (
+            <>
+              <div className="metric-strip">
+                <Metric label="Assets" value={assetAuditSummary.total} accent="neutral" />
+                <Metric label="Ready" value={assetAuditSummary.ready} accent={assetAuditSummary.ready > 0 ? "good" : "neutral"} />
+                <Metric label="Review" value={assetAuditSummary.review} accent={assetAuditSummary.review > 0 ? "warning" : "neutral"} />
+                <Metric label="High risk" value={assetAuditSummary.risk} accent={assetAuditSummary.risk > 0 ? "error" : "neutral"} />
+              </div>
+
+              <div className="table-surface asset-audit-table">
+                <div className="table-head asset-columns">
+                  <span>Asset</span>
+                  <span>Format</span>
+                  <span>Dimensions</span>
+                  <span>Transport</span>
+                  <span>Risk</span>
+                  <span>Detail</span>
+                </div>
+                {assetAuditRows.map((row) => (
+                  <article className={`table-row asset-columns asset-${row.riskLevel}`} key={row.id}>
+                    <div className="table-cell row-detail compact" data-label="Asset">
+                      <strong>{row.assetType}</strong>
+                      <span>{row.adTitle}</span>
+                    </div>
+                    <span className="table-cell" data-label="Format">
+                      {row.format}
+                    </span>
+                    <span className="table-cell" data-label="Dimensions">
+                      {row.dimensions}
+                    </span>
+                    <span className="table-cell" data-label="Transport">
+                      <span
+                        className={`pill transport-${row.transport === "HTTP" ? "http" : row.transport === "HTTPS" ? "https" : "inline"}`}
+                      >
+                        {row.transport}
+                      </span>
+                    </span>
+                    <span className="table-cell" data-label="Risk">
+                      <span className={`pill risk-${row.riskLevel}`}>{row.riskLabel}</span>
+                    </span>
+                    <div className="table-cell row-detail compact" data-label="Detail">
+                      <span>{row.detail}</span>
+                      {row.url ? <code className="url-code">{row.url}</code> : null}
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              <div className="subsection-heading">
+                <strong>Ad cards</strong>
+                <span>{inventoryAds.length} resolved</span>
+              </div>
+
+              <div className="resolved-grid">
+                {inventoryAds.map((resolvedAd, index) => (
+                  <ResolvedAdCard key={`${resolvedAd.adPod.adId ?? "ad"}-${index}`} index={index} resolvedAd={resolvedAd} />
+                ))}
+              </div>
+            </>
+          )}
+        </Section>
+
+        <Section
+          title="Playback console"
+          open={openSections.playback}
+          onToggle={() => toggleSection("playback")}
+          meta={<span className="tag">{runnerSnapshot.status}</span>}
+        >
+          <div className="metric-strip">
+            <Metric label="Status" value={runnerSnapshot.status} accent={runnerSnapshot.status === "error" ? "error" : runnerSnapshot.status === "playing" ? "good" : "neutral"} />
+            <Metric label="Media" value={runnerSnapshot.mediaSelection.selected?.mimeType ?? "none"} accent="neutral" />
+            <Metric
+              label="Clock"
+              value={`${formatClock(runnerSnapshot.currentTimeSec)} / ${formatClock(runnerSnapshot.durationSec)}`}
+              accent="neutral"
+            />
+            <Metric label="Viewability" value={runnerSnapshot.viewability ?? "not set"} accent="neutral" />
           </div>
+
+          <div className="runner-toolbar">
+            <button className="secondary" onClick={() => void preparePlaybackRunner()} type="button">
+              Prepare runner
+            </button>
+            <button className="ghost" disabled={!runnerMediaUrl} onClick={() => void toggleRunnerMute()} type="button">
+              {runnerSnapshot.muted ? "Unmute" : "Mute"}
+            </button>
+            <button
+              className="ghost"
+              disabled={!runnerSnapshot.clickThroughUrl}
+              onClick={() => void triggerRunnerClick()}
+              type="button"
+            >
+              Track click
+            </button>
+            <button className="ghost" disabled={!runnerSnapshot.resolvedAd} onClick={() => void skipPlayback()} type="button">
+              Skip ad
+            </button>
+            <button
+              className="ghost"
+              disabled={!runnerSnapshot.resolvedAd}
+              onClick={() => void signalRunnerError()}
+              type="button"
+            >
+              Signal error
+            </button>
+            <button
+              className="ghost"
+              disabled={!runnerSnapshot.resolvedAd}
+              onClick={() => void setPlaybackViewability("viewable")}
+              type="button"
+            >
+              Viewable
+            </button>
+            <button
+              className="ghost"
+              disabled={!runnerSnapshot.resolvedAd}
+              onClick={() => void setPlaybackViewability("notViewable")}
+              type="button"
+            >
+              Not viewable
+            </button>
+            <button
+              className="ghost"
+              disabled={!runnerSnapshot.resolvedAd}
+              onClick={() => void setPlaybackViewability("viewUndetermined")}
+              type="button"
+            >
+              Undetermined
+            </button>
+          </div>
+
+          {runnerSnapshot.error ? <div className="banner error">{runnerSnapshot.error}</div> : null}
 
           <div className="playback-shell">
             <div className="runner-stage">
-              <div className="runner-status-grid">
-                <StatCard label="Status" value={runnerSnapshot.status} accent={runnerSnapshot.status === "error" ? "error" : runnerSnapshot.status === "playing" ? "good" : "neutral"} />
-                <StatCard label="Media" value={runnerSnapshot.mediaSelection.selected?.mimeType ?? "none"} accent="neutral" />
-                <StatCard label="Clock" value={`${formatClock(runnerSnapshot.currentTimeSec)} / ${formatClock(runnerSnapshot.durationSec)}`} accent="neutral" />
-              </div>
-
               {runnerMediaUrl ? (
                 <div className="runner-video-frame">
                   <video
@@ -2951,7 +3346,9 @@ function App() {
                     controls
                     crossOrigin="anonymous"
                     onEnded={() => void handleRunnerEnded()}
-                    onLoadedMetadata={() => appendRunnerTimeline("media", "video:metadata", "Loaded media metadata into the playback runner.")}
+                    onLoadedMetadata={() =>
+                      appendRunnerTimeline("media", "video:metadata", "Loaded media metadata into the playback runner.")
+                    }
                     onPause={() => void handleRunnerPause()}
                     onPlay={() => void handleRunnerPlay()}
                     onTimeUpdate={() => void handleRunnerTimeUpdate()}
@@ -2960,164 +3357,85 @@ function App() {
                   />
                 </div>
               ) : (
-                <EmptyState title="Runner not prepared" body="Prepare the runner to resolve a playable media file and load it into the console." />
+                <EmptyState
+                  title="Runner not prepared"
+                  body="Prepare the runner to resolve a playable media file and load it into the console."
+                />
               )}
 
-              <div className="runner-toolbar">
-                <button className="secondary" onClick={() => void preparePlaybackRunner()} type="button">
-                  Prepare runner
-                </button>
-                <button className="ghost" disabled={!runnerMediaUrl} onClick={() => void toggleRunnerMute()} type="button">
-                  {runnerSnapshot.muted ? "Unmute" : "Mute"}
-                </button>
-                <button className="ghost" disabled={!runnerSnapshot.clickThroughUrl} onClick={() => void triggerRunnerClick()} type="button">
-                  Track click
-                </button>
-                <button className="ghost" disabled={!runnerSnapshot.resolvedAd} onClick={() => void skipPlayback()} type="button">
-                  Skip ad
-                </button>
-                <button className="ghost" disabled={!runnerSnapshot.resolvedAd} onClick={() => void signalRunnerError()} type="button">
-                  Signal error
-                </button>
-              </div>
-
-              <div className="runner-toolbar compact-toolbar">
-                <button className="ghost" disabled={!runnerSnapshot.resolvedAd} onClick={() => void setPlaybackViewability("viewable")} type="button">
-                  Viewable
-                </button>
-                <button className="ghost" disabled={!runnerSnapshot.resolvedAd} onClick={() => void setPlaybackViewability("notViewable")} type="button">
-                  Not viewable
-                </button>
-                <button className="ghost" disabled={!runnerSnapshot.resolvedAd} onClick={() => void setPlaybackViewability("viewUndetermined")} type="button">
-                  Undetermined
-                </button>
-              </div>
-
-              {runnerSnapshot.error ? (
-                <div className="banner error">{runnerSnapshot.error}</div>
-              ) : null}
-            </div>
-
-            <div className="runner-sidebar">
-              <dl className="summary-list compact-list runner-details-list">
+              <dl className="summary-list compact-list">
                 <div>
                   <dt>Resolved ad</dt>
                   <dd>{runnerSnapshot.resolvedAd?.adTitle || "none"}</dd>
                 </div>
                 <div>
                   <dt>Click-through</dt>
-                  <dd>{runnerSnapshot.clickThroughUrl ?? "none"}</dd>
-                </div>
-                <div>
-                  <dt>Viewability</dt>
-                  <dd>{runnerSnapshot.viewability ?? "not set"}</dd>
+                  <dd className="truncate-url" title={runnerSnapshot.clickThroughUrl ?? undefined}>
+                    {runnerSnapshot.clickThroughUrl ?? "none"}
+                  </dd>
                 </div>
                 <div>
                   <dt>Milestones</dt>
-                  <dd>{Object.entries(runnerSnapshot.milestones).filter(([, reached]) => reached).map(([milestone]) => milestone).join(", ") || "none"}</dd>
+                  <dd>
+                    {Object.entries(runnerSnapshot.milestones)
+                      .filter(([, reached]) => reached)
+                      .map(([milestone]) => milestone)
+                      .join(", ") || "none"}
+                  </dd>
                 </div>
               </dl>
+            </div>
 
-              <div className="timeline-panel">
-                <div className="timeline-header">
-                  <strong>Runner timeline</strong>
-                  <span>{timelineEntries.length} entries</span>
+            <div className="timeline-panel">
+              <div className="timeline-header">
+                <strong>Runner timeline</strong>
+                <span>{timelineEntries.length} entries</span>
+              </div>
+              {timelineEntries.length === 0 ? (
+                <div className="timeline-empty">
+                  Prepare the runner and interact with the media element to populate playback events.
                 </div>
-                {timelineEntries.length === 0 ? (
-                  <div className="timeline-empty">Prepare the runner and interact with the media element to populate playback events.</div>
-                ) : (
-                  <div className="timeline-list">
-                    {timelineEntries.map((entry) => (
-                      <article className={`timeline-item kind-${entry.kind}`} key={entry.id}>
-                        <div className="timeline-topline">
-                          <strong>{entry.title}</strong>
-                          <span>{new Date(entry.at).toLocaleTimeString()}</span>
-                        </div>
-                        <p>{entry.detail}</p>
-                      </article>
-                    ))}
-                  </div>
-                )}
-              </div>
+              ) : (
+                <div className="timeline-list">
+                  {timelineEntries.map((entry) => (
+                    <article className={`timeline-item kind-${entry.kind}`} key={entry.id}>
+                      <div className="timeline-topline">
+                        <strong>{entry.title}</strong>
+                        <span>{new Date(entry.at).toLocaleTimeString()}</span>
+                      </div>
+                      <p>{entry.detail}</p>
+                    </article>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-        </section>
+        </Section>
 
-        <section className="panel runtime-panel">
-          <div className="panel-header compact">
-            <div>
-              <p className="section-label">Runtime inspection</p>
-              <h2>Verification and legacy surfaces</h2>
-            </div>
-          </div>
-
-          <div className="runtime-metrics">
-            <StatCard label="OMID resources" value={runtimeInspection.omidCount} accent={runtimeInspection.omidCount > 0 ? "good" : "neutral"} />
-            <StatCard label="VPAID markers" value={runtimeInspection.vpaidCount} accent={runtimeInspection.vpaidCount > 0 ? "warning" : "neutral"} />
-            <StatCard label="Companions" value={runtimeInspection.companions.length} accent="neutral" />
-            <StatCard label="Icons" value={runtimeInspection.icons.length} accent="neutral" />
-          </div>
-
-          <div className="runtime-chip-row">
-            {runtimeInspection.apiFrameworks.length > 0 ? runtimeInspection.apiFrameworks.map((framework) => (
-              <span className="runtime-chip" key={framework}>{framework}</span>
-            )) : <span className="runtime-chip muted-chip">No apiFramework markers detected</span>}
-          </div>
-
-          {runtimeInspection.verificationResources.length > 0 ? (
-            <div className="table-surface runtime-table">
-              <div className="table-head verification-columns">
-                <span>Vendor</span>
-                <span>Framework</span>
-                <span>Resource</span>
-              </div>
-              {runtimeInspection.verificationResources.map((resource) => (
-                <article className="table-row verification-columns" key={resource.id}>
-                  <strong className="table-cell" data-label="Vendor">{resource.vendor}</strong>
-                  <span className="table-cell" data-label="Framework">{resource.apiFramework ?? resource.kind}</span>
-                  <div className="table-cell row-detail compact" data-label="Resource">
-                    <strong>{resource.adTitle}</strong>
-                    <span>{resource.url}</span>
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <EmptyState title="No verification resources detected" body="Load a tag with AdVerifications to inspect OM SDK and other verification payloads." />
-          )}
-
-          {(runtimeInspection.companions.length > 0 || runtimeInspection.icons.length > 0) ? (
-            <div className="preview-grid">
-              {runtimeInspection.companions.map((companion) => (
-                <CreativePreviewCard key={companion.id} item={companion} label="Companion" />
-              ))}
-              {runtimeInspection.icons.map((icon) => (
-                <CreativePreviewCard key={icon.id} item={icon} label="Icon" />
-              ))}
-            </div>
-          ) : (
-            <EmptyState title="No companion or icon assets detected" body="Load a tag with creative resources to inspect companion rendering surfaces." />
-          )}
-        </section>
-
-        <section className="panel tracking-panel">
-          <div className="panel-header compact">
-            <div>
-              <p className="section-label">Tracking</p>
-              <h2>Dispatch waterfall</h2>
-            </div>
-          </div>
-
-          <div className="waterfall-metrics">
-            <StatCard label="Targets" value={waterfallSummary.total} accent="neutral" />
-            <StatCard label="Succeeded" value={waterfallSummary.ok} accent={waterfallSummary.ok > 0 ? "good" : "neutral"} />
-            <StatCard label="Failed" value={waterfallSummary.failed} accent={waterfallSummary.failed > 0 ? "error" : "neutral"} />
-            <StatCard label="Pending" value={waterfallSummary.pending} accent={waterfallSummary.pending > 0 ? "warning" : "neutral"} />
-            <StatCard label="Linked only" value={waterfallSummary.linked} accent="neutral" />
+        <Section
+          title="Tracking waterfall"
+          open={openSections.tracking}
+          onToggle={() => toggleSection("tracking")}
+          meta={
+            <>
+              {waterfallSummary.failed > 0 ? <span className="pill status-failed">{waterfallSummary.failed} failed</span> : null}
+              <span className="badge">{waterfallSummary.total}</span>
+            </>
+          }
+        >
+          <div className="metric-strip">
+            <Metric label="Targets" value={waterfallSummary.total} accent="neutral" />
+            <Metric label="Succeeded" value={waterfallSummary.ok} accent={waterfallSummary.ok > 0 ? "good" : "neutral"} />
+            <Metric label="Failed" value={waterfallSummary.failed} accent={waterfallSummary.failed > 0 ? "error" : "neutral"} />
+            <Metric label="Pending" value={waterfallSummary.pending} accent={waterfallSummary.pending > 0 ? "warning" : "neutral"} />
+            <Metric label="Linked only" value={waterfallSummary.linked} accent="neutral" />
           </div>
 
           {trackingWaterfallRows.length === 0 ? (
-            <EmptyState title="No tracking targets resolved" body="Prepare the runner to inspect the full tracking plan and dispatch history." />
+            <EmptyState
+              title="No tracking targets resolved"
+              body="Prepare the runner to inspect the full tracking plan and dispatch history."
+            />
           ) : (
             <div className="table-surface waterfall-table">
               <div className="table-head waterfall-columns">
@@ -3140,7 +3458,10 @@ function App() {
                   </div>
                   <div className="table-cell row-detail compact" data-label="Detail">
                     <strong>{row.originalUrl}</strong>
-                    <span>Hop {row.hopIndex}{row.offset ? ` • offset ${row.offset}` : ""}</span>
+                    <span>
+                      Hop {row.hopIndex}
+                      {row.offset ? ` · offset ${row.offset}` : ""}
+                    </span>
                     <span>{row.dispatchCount > 0 ? `${String(row.dispatchCount)} dispatch(es)` : "Not dispatched yet"}</span>
                     {row.lastDispatchedAt ? <span>{new Date(row.lastDispatchedAt).toLocaleTimeString()}</span> : null}
                     {row.httpStatus !== null ? <span>HTTP {row.httpStatus}</span> : null}
@@ -3151,22 +3472,97 @@ function App() {
               ))}
             </div>
           )}
-        </section>
+        </Section>
 
-        <section className="panel macro-panel">
-          <div className="panel-header compact">
-            <div>
-              <p className="section-label">Macro debugger</p>
-              <h2>Environment presets</h2>
-            </div>
+        <Section
+          title="Runtime and verification"
+          open={openSections.runtime}
+          onToggle={() => toggleSection("runtime")}
+          meta={
+            <span className="tag">
+              {runtimeInspection.omidCount} OMID · {runtimeInspection.vpaidCount} VPAID
+            </span>
+          }
+        >
+          <div className="metric-strip">
+            <Metric label="OMID resources" value={runtimeInspection.omidCount} accent={runtimeInspection.omidCount > 0 ? "good" : "neutral"} />
+            <Metric label="VPAID markers" value={runtimeInspection.vpaidCount} accent={runtimeInspection.vpaidCount > 0 ? "warning" : "neutral"} />
+            <Metric label="Companions" value={runtimeInspection.companions.length} accent="neutral" />
+            <Metric label="Icons" value={runtimeInspection.icons.length} accent="neutral" />
           </div>
 
+          <div className="runtime-chip-row">
+            {runtimeInspection.apiFrameworks.length > 0 ? (
+              runtimeInspection.apiFrameworks.map((framework) => (
+                <span className="runtime-chip" key={framework}>
+                  {framework}
+                </span>
+              ))
+            ) : (
+              <span className="runtime-chip muted-chip">No apiFramework markers detected</span>
+            )}
+          </div>
+
+          {runtimeInspection.verificationResources.length > 0 ? (
+            <div className="table-surface runtime-table">
+              <div className="table-head verification-columns">
+                <span>Vendor</span>
+                <span>Framework</span>
+                <span>Resource</span>
+              </div>
+              {runtimeInspection.verificationResources.map((resource) => (
+                <article className="table-row verification-columns" key={resource.id}>
+                  <strong className="table-cell" data-label="Vendor">
+                    {resource.vendor}
+                  </strong>
+                  <span className="table-cell" data-label="Framework">
+                    {resource.apiFramework ?? resource.kind}
+                  </span>
+                  <div className="table-cell row-detail compact" data-label="Resource">
+                    <strong>{resource.adTitle}</strong>
+                    <span>{resource.url}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="No verification resources detected"
+              body="Load a tag with AdVerifications to inspect OM SDK and other verification payloads."
+            />
+          )}
+
+          {runtimeInspection.companions.length > 0 || runtimeInspection.icons.length > 0 ? (
+            <div className="preview-grid">
+              {runtimeInspection.companions.map((companion) => (
+                <CreativePreviewCard key={companion.id} item={companion} label="Companion" />
+              ))}
+              {runtimeInspection.icons.map((icon) => (
+                <CreativePreviewCard key={icon.id} item={icon} label="Icon" />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="No companion or icon assets detected"
+              body="Load a tag with creative resources to inspect companion rendering surfaces."
+            />
+          )}
+        </Section>
+
+        <Section
+          title="Macro debugger"
+          open={openSections.macros}
+          onToggle={() => toggleSection("macros")}
+          meta={<span className="tag">{activeMacroPreset?.label ?? "custom"}</span>}
+        >
           <div className="macro-toolbar">
             <label className="macro-picker">
               <span>Preset</span>
               <select onChange={(event) => applyMacroPreset(event.target.value)} value={selectedMacroPresetId}>
                 {macroPresets.map((preset) => (
-                  <option key={preset.id} value={preset.id}>{preset.label}</option>
+                  <option key={preset.id} value={preset.id}>
+                    {preset.label}
+                  </option>
                 ))}
               </select>
             </label>
@@ -3178,8 +3574,9 @@ function App() {
             </button>
           </div>
 
-          <p className="microcopy">
-            {activeMacroPreset?.description ?? "Custom macro values."} The current macro set is also used when you trigger an error beacon from the runner.
+          <p className="muted-copy">
+            {activeMacroPreset?.description ?? "Custom macro values."} The active set is also used when you trigger an
+            error beacon from the runner.
           </p>
 
           <div className="macro-editor">
@@ -3212,7 +3609,9 @@ function App() {
               <span>{macroPreviewRows.length} rows</span>
             </div>
             {macroPreviewRows.length === 0 ? (
-              <div className="timeline-empty">Prepare the runner to preview how the active macro set expands tracking URLs.</div>
+              <div className="timeline-empty">
+                Prepare the runner to preview how the active macro set expands tracking URLs.
+              </div>
             ) : (
               <div className="macro-preview-list">
                 {macroPreviewRows.map((row) => (
@@ -3228,179 +3627,91 @@ function App() {
               </div>
             )}
           </div>
-        </section>
+        </Section>
 
-        <section className="panel findings-panel" ref={findingsSectionRef}>
-          <div className="panel-header compact">
-            <div>
-              <p className="section-label">Findings</p>
-              <h2>Rule findings</h2>
-            </div>
-            <div className="panel-header-meta">
-              {activeComplianceVerdict ? (
-                <span className={`pill profile-pill profile-${activeComplianceVerdict.status}`}>{activeComplianceVerdict.label}</span>
-              ) : null}
-              <span className="badge">{displayedIssues.length}</span>
-            </div>
+        <Section
+          title="Share and export"
+          open={openSections.export}
+          onToggle={() => toggleSection("export")}
+          meta={<span className="tag">{activeComplianceVerdict?.label ?? "no lens"}</span>}
+        >
+          <div className="action-row">
+            <button className="secondary" onClick={() => void copyShareLink()} type="button">
+              Copy share link
+            </button>
+            <button className="secondary" onClick={() => void copyReportSummary()} type="button">
+              Copy summary
+            </button>
+            <button className="secondary" onClick={() => void copyErrorFindings()} type="button">
+              Copy errors
+            </button>
+            <button className="ghost" onClick={() => downloadReport("txt")} type="button">
+              Download text
+            </button>
+            <button className="ghost" onClick={() => downloadReport("json")} type="button">
+              Download JSON
+            </button>
+            <button className="ghost" onClick={() => void downloadArtifactBundle()} type="button">
+              Download bundle
+            </button>
           </div>
 
-          {selectedFindingLine !== null ? (
-            <div className="findings-filter-row">
-              <span className="findings-filter-note">Filtered to line {selectedFindingLine} from the inline editor marker.</span>
-              <button className="ghost findings-clear" onClick={() => setSelectedFindingLine(null)} type="button">
-                Show all findings
-              </button>
-            </div>
-          ) : null}
+          {reportNotice ? <div className="banner success">{reportNotice}</div> : null}
 
-          {displayedIssues.length === 0 ? (
-            <EmptyState title="No findings for current run" body="Run validate or resolve to populate rule output." />
-          ) : (
-            <div className="table-surface">
-              <div className="table-head findings-columns">
-                <span>Severity</span>
-                <span>Rule</span>
-                <span>Location</span>
-                <span>Detail</span>
-              </div>
-              {displayedIssues.map((issue) => (
-                <article className={`table-row findings-columns severity-${issue.severity} ${selectedFindingLine !== null ? "findings-selected" : ""}`} key={`${issue.id}-${issue.path ?? "document"}-${issue.line ?? 0}-${issue.col ?? 0}`}>
-                  <div className="table-cell" data-label="Severity">
-                    <span className="chip">{issue.severity}</span>
-                  </div>
-                  <strong className="table-cell" data-label="Rule">{issue.id}</strong>
-                  <span className="table-cell row-location" data-label="Location">{formatIssueLocation(issue)}</span>
-                  <div className="table-cell row-detail" data-label="Detail">
-                    <p>{issue.message}</p>
-                    <small>{issue.spec_ref}</small>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="panel wrappers-panel">
-          <div className="panel-header compact">
-            <div>
-              <p className="section-label">Wrapper chain</p>
-              <h2>Hop inspector</h2>
-            </div>
-          </div>
-
-          {snapshot.wrapperChain.length === 0 ? (
-            <EmptyState title="No wrapper data" body="Run resolve to inspect hop-by-hop fetch timing, validation counts, and metadata deltas." />
-          ) : (
-            <div className="hop-grid">
-              {wrapperInspectors.map((hop) => (
-                <article className={`hop-card hop-${hop.tone}`} key={hop.id}>
-                  <div className="hop-topline">
-                    <span className="section-label">Hop {hop.hopIndex}</span>
-                    <span className={`pill hop-pill hop-${hop.tone}`}>{hop.validationSummary}</span>
-                  </div>
-                  <h3>{hop.title}</h3>
-                  <p className="muted-copy">{hop.adType} · {hop.adSystem} · {hop.duration}</p>
-                  <div className="pill-row">
-                    {hop.stats.map((item) => (
-                      <span className="pill muted" key={`${hop.id}-${item}`}>{item}</span>
-                    ))}
-                  </div>
-                  <dl>
-                    <div>
-                      <dt>Source</dt>
-                      <dd>{hop.sourceLabel}</dd>
-                    </div>
-                    <div>
-                      <dt>Next hop</dt>
-                      <dd>{hop.nextHopLabel}</dd>
-                    </div>
-                    <div>
-                      <dt>Fetched</dt>
-                      <dd>{new Date(hop.fetchedAt).toLocaleTimeString()} · {hop.fetchMs} ms</dd>
-                    </div>
-                  </dl>
-                  <div className="compact-list hop-notes">
-                    {hop.changes.map((note) => (
-                      <span key={`${hop.id}-${note}`}>{note}</span>
-                    ))}
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="panel resolved-panel">
-          <div className="panel-header compact">
-            <div>
-              <p className="section-label">Resolved ads</p>
-              <h2>Inventory and asset audit</h2>
-            </div>
-          </div>
-
-          {inventoryAds.length === 0 ? (
-            <EmptyState title="No resolved ads" body="Run resolve or prepare the runner to inspect the final ad pod and media inventory." />
-          ) : (
-            <>
-              <div className="asset-summary">
-                <StatCard label="Assets" value={assetAuditSummary.total} accent="neutral" />
-                <StatCard label="Ready" value={assetAuditSummary.ready} accent={assetAuditSummary.ready > 0 ? "good" : "neutral"} />
-                <StatCard label="Review" value={assetAuditSummary.review} accent={assetAuditSummary.review > 0 ? "warning" : "neutral"} />
-                <StatCard label="High risk" value={assetAuditSummary.risk} accent={assetAuditSummary.risk > 0 ? "error" : "neutral"} />
-              </div>
-
-              <div className="table-surface asset-audit-table">
-                <div className="table-head asset-columns">
-                  <span>Asset</span>
-                  <span>Format</span>
-                  <span>Dimensions</span>
-                  <span>Transport</span>
-                  <span>Risk</span>
-                  <span>Detail</span>
-                </div>
-                {assetAuditRows.map((row) => (
-                  <article className={`table-row asset-columns asset-${row.riskLevel}`} key={row.id}>
-                    <div className="table-cell row-detail compact" data-label="Asset">
-                      <strong>{row.assetType}</strong>
-                      <span>{row.adTitle}</span>
-                    </div>
-                    <span className="table-cell" data-label="Format">{row.format}</span>
-                    <span className="table-cell" data-label="Dimensions">{row.dimensions}</span>
-                    <span className="table-cell" data-label="Transport">
-                      <span className={`pill transport-pill transport-${row.transport === "HTTP" ? "http" : row.transport === "HTTPS" ? "https" : "inline"}`}>{row.transport}</span>
-                    </span>
-                    <span className="table-cell" data-label="Risk">
-                      <span className={`pill risk-pill risk-${row.riskLevel}`}>{row.riskLabel}</span>
-                    </span>
-                    <div className="table-cell row-detail compact" data-label="Detail">
-                      <span>{row.detail}</span>
-                      {row.url ? <code className="url-code">{row.url}</code> : null}
-                    </div>
-                  </article>
-                ))}
-              </div>
-
-              <div className="subsection-heading">
-                <strong>Resolved ad cards</strong>
-                <span>{inventoryAds.length} ad(s)</span>
-              </div>
-
-              <div className="resolved-grid">
-                {inventoryAds.map((resolvedAd, index) => (
-                  <ResolvedAdCard key={`${resolvedAd.adPod.adId ?? "ad"}-${index}`} index={index} resolvedAd={resolvedAd} />
-                ))}
-              </div>
-            </>
-          )}
-        </section>
+          <pre className="report-preview">{reportSummary}</pre>
+        </Section>
       </main>
+
+      <footer className="app-footer">
+        <p>
+          Validation, repair, and wrapper resolution run on{" "}
+          <a href="https://vastlint.org" rel="noreferrer" target="_blank">
+            vastlint
+          </a>
+          , an open-source VAST validation engine with rules derived from published IAB Tech Lab specs and XSD schemas.
+          This tester is an independent frontend for that engine, not an official IAB Tech Lab tool. See{" "}
+          <a href="https://vastlint.org" rel="noreferrer" target="_blank">
+            vastlint.org
+          </a>{" "}
+          for the hosted validator, CLI, and native Go, Rust, Python, and npm packages.
+        </p>
+      </footer>
     </div>
   );
 }
 
-function StatCard({ label, value, accent }: { label: string; value: number | string; accent: string }) {
+function Section({
+  title,
+  meta,
+  open,
+  onToggle,
+  panelRef,
+  children,
+}: {
+  title: string;
+  meta?: ReactNode;
+  open: boolean;
+  onToggle: () => void;
+  panelRef?: Ref<HTMLElement>;
+  children: ReactNode;
+}) {
   return (
-    <div className={`stat-card accent-${accent}`}>
+    <section className={`panel${open ? " is-open" : ""}`} ref={panelRef}>
+      <button className="panel-head" aria-expanded={open} onClick={onToggle} type="button">
+        <span className={`panel-chevron${open ? " open" : ""}`} aria-hidden="true">
+          ▾
+        </span>
+        <h2>{title}</h2>
+        <span className="panel-meta">{meta}</span>
+      </button>
+      {open ? <div className="panel-body">{children}</div> : null}
+    </section>
+  );
+}
+
+function Metric({ label, value, accent }: { label: string; value: number | string; accent: string }) {
+  return (
+    <div className={`metric accent-${accent}`}>
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
@@ -3442,7 +3753,7 @@ function CreativePreviewCard({ item, label }: { item: RuntimeCreativePreview; la
         </div>
         <div>
           <dt>Click-through</dt>
-          <dd>{item.clickThroughUrl ?? "none"}</dd>
+          <dd className="truncate-url" title={item.clickThroughUrl ?? undefined}>{item.clickThroughUrl ?? "none"}</dd>
         </div>
       </dl>
     </article>
