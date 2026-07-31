@@ -2816,6 +2816,10 @@ function App() {
             Report an issue
             <ExternalGlyph />
           </a>
+          <a href="https://github.com/aleksUIX/vastlint/discussions" rel="noreferrer noopener" target="_blank">
+            Start a discussion
+            <ExternalGlyph />
+          </a>
           <a href="mailto:aleks@vastlint.org?subject=VAST%20Tester%20feedback">Send feedback</a>
         </nav>
       </header>
@@ -3859,7 +3863,15 @@ function App() {
           <a href="https://vastlint.org" rel="noreferrer" target="_blank">
             vastlint.org
           </a>{" "}
-          for the hosted validator, CLI, and native Go, Rust, Python, and npm packages.
+          for the hosted validator, CLI, and native Go, Rust, Python, and npm packages. Found a wrong result or want a
+          new rule? <a href="https://github.com/aleksUIX/vastlint/issues/new" rel="noreferrer noopener" target="_blank">
+            Report an issue
+          </a>{" "}
+          or{" "}
+          <a href="https://github.com/aleksUIX/vastlint/discussions" rel="noreferrer noopener" target="_blank">
+            start a discussion
+          </a>{" "}
+          on the vastlint GitHub repo.
         </p>
       </footer>
     </div>

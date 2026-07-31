@@ -36,6 +36,8 @@ This UI is the interactive frontend layer for the broader `vastlint` ecosystem.
 
 - Core project: [github.com/aleksUIX/vastlint](https://github.com/aleksUIX/vastlint)
 - Hosted web validator: [vastlint.org](https://vastlint.org)
+- Report an issue: [github.com/aleksUIX/vastlint/issues](https://github.com/aleksUIX/vastlint/issues)
+- Start a discussion: [github.com/aleksUIX/vastlint/discussions](https://github.com/aleksUIX/vastlint/discussions)
 - npm packages:
 	- [npmjs.com/package/vastlint](https://www.npmjs.com/package/vastlint)
 	- [npmjs.com/package/vastlint-client](https://www.npmjs.com/package/vastlint-client)
@@ -96,6 +98,13 @@ This workflow avoids GitHub Actions and repo secrets while keeping deployment re
 ## Why This Exists
 
 The goal is not to reproduce the old tester one-to-one. The goal is to provide a stronger open-source workflow for anyone searching for an IAB Tech Lab VAST Tester style tool, but needing more visibility into why a tag fails, how wrappers resolve, what media is actually returned, and where tracking or compliance issues appear.
+
+## Feedback, Issues, Questions
+
+All feedback goes through the `vastlint` GitHub project, since this tester is a frontend for that engine:
+
+- Wrong or missing validation result, rule request, tester bug: [open an issue](https://github.com/aleksUIX/vastlint/issues/new)
+- Questions, ideas, anything open-ended: [start a discussion](https://github.com/aleksUIX/vastlint/discussions)
 
 ## Notes
 
