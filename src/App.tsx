@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode, Ref } from "react";
+import type { CSSProperties, ReactNode, Ref } from "react";
 import JSZip from "jszip";
 import { useVastPlayback, useVastSession, useVastTracker } from "vastlint-react";
 import adIdentityXml from "./scenarios/ad-identity.xml?raw";
@@ -218,8 +218,17 @@ interface EditorIssueMarker {
   top: number;
 }
 
-const EDITOR_LINE_HEIGHT = 28;
-const EDITOR_VERTICAL_PADDING = 16;
+// Inline markers are positioned by arithmetic, not by measuring the DOM, so the
+// editor geometry has to live in one place. These values are pushed into the
+// shell as custom properties: if CSS and JS disagree, every marker drifts by the
+// difference multiplied by its line number.
+const EDITOR_LINE_HEIGHT = 24;
+const EDITOR_VERTICAL_PADDING = 12;
+const EDITOR_GEOMETRY = {
+  "--editor-line-height": `${String(EDITOR_LINE_HEIGHT)}px`,
+  "--editor-padding-top": `${String(EDITOR_VERTICAL_PADDING)}px`,
+} as CSSProperties;
+const RULE_DOCS_BASE = "https://vastlint.org/docs/rules";
 const DEFAULT_APP_ORIGIN = "http://localhost:5175";
 const SCENARIO_FALLBACK_ASSET_ORIGIN = "https://iab-tech-lab-vast-tester.vastlint.org";
 const APP_BASE_PATH = import.meta.env.BASE_URL ?? "/";
@@ -1696,6 +1705,71 @@ function countBySeverity(issues: readonly Issue[]) {
   );
 }
 
+function ruleDocsUrl(ruleId: string) {
+  return `${RULE_DOCS_BASE}/${encodeURIComponent(ruleId)}`;
+}
+
+function isFollowableUrl(value: string | null | undefined): value is string {
+  return typeof value === "string" && /^https?:\/\//i.test(value.trim());
+}
+
+function ExternalGlyph() {
+  return (
+    <svg aria-hidden="true" className="external-glyph" focusable="false" viewBox="0 0 12 12">
+      <path d="M4.5 1.5h6v6" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M10.5 1.5 5 7" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M8.5 9.5h-6v-6h3" fill="none" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
+  );
+}
+
+/**
+ * Renders a URL from validator output. Absolute http(s) values become
+ * new-tab links; data URIs, macro-only templates and relative paths stay inert
+ * text so the UI never advertises a link that cannot be followed.
+ */
+function UrlValue({
+  url,
+  variant = "code",
+  className,
+  fallback = "none",
+  hint,
+}: {
+  url: string | null | undefined;
+  variant?: "code" | "text";
+  className?: string;
+  fallback?: string;
+  hint?: string;
+}) {
+  const value = typeof url === "string" ? url.trim() : "";
+  const classes = [variant === "code" ? "url-code" : "url-text", className].filter(Boolean).join(" ");
+
+  if (value.length === 0) {
+    return <span className={classes}>{fallback}</span>;
+  }
+
+  if (!isFollowableUrl(value)) {
+    return (
+      <span className={classes} title={value}>
+        {value}
+      </span>
+    );
+  }
+
+  return (
+    <a
+      className={`${classes} url-link`}
+      href={value}
+      rel="noreferrer noopener"
+      target="_blank"
+      title={hint ? `${hint}\n\n${value}` : `Opens in a new tab: ${value}`}
+    >
+      {value}
+      <ExternalGlyph />
+    </a>
+  );
+}
+
 function formatIssueLocation(issue: Issue) {
   if (issue.line === null) {
     return issue.path ?? "document";
@@ -1734,6 +1808,8 @@ function App() {
     payload: sharedSession?.payload ?? sampleXml,
   });
   const [lastFix, setLastFix] = useState<FixResult | null>(null);
+  // Starts true: the app always queues a run for the initial payload on mount.
+  const [isRunning, setIsRunning] = useState(true);
   const [runError, setRunError] = useState<string | null>(null);
   const [reportNotice, setReportNotice] = useState<string | null>(null);
   const [selectedComplianceProfileId, setSelectedComplianceProfileId] = useState<ComplianceProfileId>(sharedSession?.selectedComplianceProfileId ?? "strict-iab");
@@ -1782,8 +1858,11 @@ function App() {
       setRunError(null);
 
       if (lastRun.payload.trim().length === 0) {
+        setIsRunning(false);
         return;
       }
+
+      setIsRunning(true);
 
       try {
         if (lastRun.action === "fix") {
@@ -1809,6 +1888,10 @@ function App() {
       } catch (error) {
         if (!cancelled) {
           setRunError(error instanceof Error ? error.message : String(error));
+        }
+      } finally {
+        if (!cancelled) {
+          setIsRunning(false);
         }
       }
     }
@@ -1885,6 +1968,9 @@ function App() {
     [editorAnnotationsMatchPayload, issues],
   );
   const editorAnnotationsStale = sourceMode === "xml" && lastRun.sourceMode === "xml" && lastRun.payload !== xmlDraft && issues.length > 0;
+  // Line numbers only address the editor when the editor is what was validated.
+  // For URL runs they point at the fetched document, which is not on screen.
+  const canJumpToEditorLine = lastRun.sourceMode === "xml" && lastRun.payload === xmlDraft && xmlDraft.length > 0;
   const displayedIssues = useMemo(
     () => selectedFindingLine === null ? issues : issues.filter((issue) => issue.line === selectedFindingLine),
     [issues, selectedFindingLine],
@@ -2191,7 +2277,8 @@ function App() {
 
   const sectionContentCounts = useMemo<Record<SectionId, number>>(() => ({
     findings: issues.length,
-    wrappers: snapshot.wrapperChain.length,
+    // A one-entry chain is just the root document, not a chain worth opening.
+    wrappers: Math.max(0, snapshot.wrapperChain.length - 1),
     resolved: inventoryAds.length,
     playback: runnerSnapshot.resolvedAd ? 1 : 0,
     tracking: trackingWaterfallRows.length,
@@ -2259,16 +2346,21 @@ function App() {
 
   const runAction = (action: ActionMode, modeOverride?: SourceMode) => {
     const mode = modeOverride ?? sourceMode;
-    const payload = (mode === "xml" ? xmlDraft : urlDraft).trim();
-    if (!payload) {
+    const draft = mode === "xml" ? xmlDraft : urlDraft;
+    const trimmed = draft.trim();
+    if (!trimmed) {
       setRunError(mode === "xml" ? "Paste VAST XML before running." : "Enter a VAST URL before running.");
       return;
     }
 
-    if (mode === "url" && !isValidRemoteUrl(payload)) {
+    if (mode === "url" && !isValidRemoteUrl(trimmed)) {
       setRunError("Enter a full http:// or https:// VAST URL.");
       return;
     }
+
+    // XML runs keep the editor text verbatim: trimming it would break the
+    // line numbers the inline markers are anchored to.
+    const payload = mode === "xml" ? draft : trimmed;
 
     if (modeOverride && modeOverride !== sourceMode) {
       setSourceMode(modeOverride);
@@ -2680,6 +2772,27 @@ function App() {
     });
   };
 
+  const revealEditorLine = (line: number) => {
+    const textarea = xmlTextareaRef.current;
+    if (!textarea) {
+      return;
+    }
+
+    setSourceMode("xml");
+    const lines = textarea.value.split("\n");
+    const clamped = Math.min(Math.max(line, 1), lines.length);
+    const start = lines.slice(0, clamped - 1).reduce((total, text) => total + text.length + 1, 0);
+
+    textarea.focus({ preventScroll: true });
+    textarea.setSelectionRange(start, start + lines[clamped - 1].length);
+    // Park the target line a third of the way down rather than at the very top,
+    // so the surrounding elements stay readable.
+    const offset = Math.max(0, (clamped - 1) * EDITOR_LINE_HEIGHT - (textarea.clientHeight / 3));
+    textarea.scrollTop = offset;
+    setEditorScrollTop(textarea.scrollTop);
+    textarea.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
   return (
     <div className="shell">
       <header className="masthead">
@@ -2690,15 +2803,32 @@ function App() {
             repair, wrapper inspection, playback and tracking QA, and partner-shareable reports across VAST 2.0-4.4.
           </p>
         </div>
-        <nav className="masthead-links" aria-label="Feedback">
-          <a href="https://github.com/aleksUIX/vastlint/issues/new" rel="noreferrer" target="_blank">
+        <nav className="masthead-links" aria-label="Reference and feedback">
+          <a href={RULE_DOCS_BASE} rel="noreferrer noopener" target="_blank">
+            Rule catalog
+            <ExternalGlyph />
+          </a>
+          <a href="https://vastlint.org/docs/common-vast-errors" rel="noreferrer noopener" target="_blank">
+            Common VAST errors
+            <ExternalGlyph />
+          </a>
+          <a href="https://github.com/aleksUIX/vastlint/issues/new" rel="noreferrer noopener" target="_blank">
             Report an issue
+            <ExternalGlyph />
           </a>
           <a href="mailto:aleks@vastlint.org?subject=VAST%20Tester%20feedback">Send feedback</a>
         </nav>
       </header>
 
-      <div className={`statusbar tone-${overviewTone}`} aria-label="Run status">
+      <div
+        className={`statusbar tone-${overviewTone}`}
+        aria-label="Run status"
+        data-status={snapshot.status}
+        data-action={lastRun.action}
+        data-source={lastRun.sourceMode}
+        data-run={lastRun.id}
+        data-busy={isRunning}
+      >
         <div className="statusbar-run">
           <span className="status-dot" aria-hidden="true" />
           <strong>{snapshot.status}</strong>
@@ -2722,7 +2852,7 @@ function App() {
       </div>
 
       <main className="stack">
-        <section className="panel panel-static source-panel">
+        <section className="panel panel-static source-panel" data-section="source" data-open="true">
           <div className="panel-head static">
             <h2>Source</h2>
             <span className="panel-meta">
@@ -2782,6 +2912,7 @@ function App() {
               </div>
               <div
                 className={`editor-shell ${editorIssueMarkers.length > 0 ? "has-markers" : ""} ${editorAnnotationsStale ? "editor-stale" : ""}`}
+                style={EDITOR_GEOMETRY}
               >
                 {editorIssueMarkers.length > 0 ? (
                   <div className="editor-overlay" aria-label="Inline issue markers">
@@ -2824,6 +2955,7 @@ function App() {
                   onFocus={() => setSourceMode("xml")}
                   onScroll={(event) => setEditorScrollTop(event.currentTarget.scrollTop)}
                   spellCheck={false}
+                  wrap="off"
                 />
               </div>
 
@@ -3042,6 +3174,7 @@ function App() {
         </section>
 
         <Section
+          id="findings"
           title="Findings"
           open={openSections.findings}
           onToggle={() => toggleSection("findings")}
@@ -3061,6 +3194,8 @@ function App() {
             {complianceVerdicts.map((profile) => (
               <button
                 className={`lens lens-${profile.status} ${profile.id === activeComplianceVerdict?.id ? "active" : ""}`}
+                data-lens={profile.id}
+                data-lens-status={profile.status}
                 key={profile.id}
                 onClick={() => setSelectedComplianceProfileId(profile.id)}
                 type="button"
@@ -3114,10 +3249,31 @@ function App() {
                     <span className="chip">{issue.severity}</span>
                   </div>
                   <strong className="table-cell" data-label="Rule">
-                    {issue.id}
+                    <a
+                      className="rule-link"
+                      data-rule={issue.id}
+                      href={ruleDocsUrl(issue.id)}
+                      rel="noreferrer noopener"
+                      target="_blank"
+                      title={`Opens in a new tab: the ${issue.id} rule page on vastlint.org`}
+                    >
+                      {issue.id}
+                      <ExternalGlyph />
+                    </a>
                   </strong>
                   <span className="table-cell row-location" data-label="Location">
-                    {formatIssueLocation(issue)}
+                    {issue.line !== null && canJumpToEditorLine ? (
+                      <button
+                        className="line-jump"
+                        onClick={() => revealEditorLine(issue.line ?? 1)}
+                        title={`Jump to line ${String(issue.line)} in the editor`}
+                        type="button"
+                      >
+                        {formatIssueLocation(issue)}
+                      </button>
+                    ) : (
+                      formatIssueLocation(issue)
+                    )}
                   </span>
                   <div className="table-cell row-detail" data-label="Detail">
                     <p>{issue.message}</p>
@@ -3130,6 +3286,7 @@ function App() {
         </Section>
 
         <Section
+          id="wrappers"
           title="Wrapper chain"
           open={openSections.wrappers}
           onToggle={() => toggleSection("wrappers")}
@@ -3163,11 +3320,20 @@ function App() {
                   <dl>
                     <div>
                       <dt>Source</dt>
-                      <dd>{hop.sourceLabel}</dd>
+                      <dd>
+                        <UrlValue hint="Open this VAST document in a new tab" url={hop.sourceLabel} variant="text" />
+                      </dd>
                     </div>
                     <div>
                       <dt>Next hop</dt>
-                      <dd>{hop.nextHopLabel}</dd>
+                      <dd>
+                        <UrlValue
+                          fallback={hop.nextHopLabel}
+                          hint="Open the next wrapper URI in a new tab"
+                          url={hop.nextHopLabel}
+                          variant="text"
+                        />
+                      </dd>
                     </div>
                     <div>
                       <dt>Fetched</dt>
@@ -3188,6 +3354,7 @@ function App() {
         </Section>
 
         <Section
+          id="resolved"
           title="Resolved ads and assets"
           open={openSections.resolved}
           onToggle={() => toggleSection("resolved")}
@@ -3245,7 +3412,7 @@ function App() {
                     </span>
                     <div className="table-cell row-detail compact" data-label="Detail">
                       <span>{row.detail}</span>
-                      {row.url ? <code className="url-code">{row.url}</code> : null}
+                      {row.url ? <UrlValue hint="Open this asset in a new tab" url={row.url} /> : null}
                     </div>
                   </article>
                 ))}
@@ -3266,6 +3433,7 @@ function App() {
         </Section>
 
         <Section
+          id="playback"
           title="Playback console"
           open={openSections.playback}
           onToggle={() => toggleSection("playback")}
@@ -3370,8 +3538,22 @@ function App() {
                 </div>
                 <div>
                   <dt>Click-through</dt>
-                  <dd className="truncate-url" title={runnerSnapshot.clickThroughUrl ?? undefined}>
-                    {runnerSnapshot.clickThroughUrl ?? "none"}
+                  <dd className="truncate-url">
+                    <UrlValue
+                      hint="Open the landing page in a new tab"
+                      url={runnerSnapshot.clickThroughUrl}
+                      variant="text"
+                    />
+                  </dd>
+                </div>
+                <div>
+                  <dt>Media file</dt>
+                  <dd className="truncate-url">
+                    <UrlValue
+                      hint="Open the selected media file in a new tab"
+                      url={runnerSnapshot.mediaSelection.selected?.url}
+                      variant="text"
+                    />
                   </dd>
                 </div>
                 <div>
@@ -3413,6 +3595,7 @@ function App() {
         </Section>
 
         <Section
+          id="tracking"
           title="Tracking waterfall"
           open={openSections.tracking}
           onToggle={() => toggleSection("tracking")}
@@ -3454,7 +3637,7 @@ function App() {
                     <span className={`pill status-${row.status}`}>{row.status}</span>
                   </div>
                   <div className="table-cell row-detail compact" data-label="Expanded URL">
-                    <code className="url-code">{row.expandedUrl}</code>
+                    <UrlValue hint="Opens in a new tab and fires this beacon for real" url={row.expandedUrl} />
                   </div>
                   <div className="table-cell row-detail compact" data-label="Detail">
                     <strong>{row.originalUrl}</strong>
@@ -3466,7 +3649,7 @@ function App() {
                     {row.lastDispatchedAt ? <span>{new Date(row.lastDispatchedAt).toLocaleTimeString()}</span> : null}
                     {row.httpStatus !== null ? <span>HTTP {row.httpStatus}</span> : null}
                     {row.error ? <span>{row.error}</span> : null}
-                    {row.sourceUrl ? <span>{row.sourceUrl}</span> : null}
+                    {row.sourceUrl ? <UrlValue hint="Open the hop this tracker came from" url={row.sourceUrl} /> : null}
                   </div>
                 </article>
               ))}
@@ -3475,6 +3658,7 @@ function App() {
         </Section>
 
         <Section
+          id="runtime"
           title="Runtime and verification"
           open={openSections.runtime}
           onToggle={() => toggleSection("runtime")}
@@ -3520,7 +3704,7 @@ function App() {
                   </span>
                   <div className="table-cell row-detail compact" data-label="Resource">
                     <strong>{resource.adTitle}</strong>
-                    <span>{resource.url}</span>
+                    <UrlValue hint="Open this verification resource in a new tab" url={resource.url} />
                   </div>
                 </article>
               ))}
@@ -3550,6 +3734,7 @@ function App() {
         </Section>
 
         <Section
+          id="macros"
           title="Macro debugger"
           open={openSections.macros}
           onToggle={() => toggleSection("macros")}
@@ -3621,7 +3806,7 @@ function App() {
                       <span>{row.status}</span>
                     </div>
                     <p>{row.originalUrl}</p>
-                    <code className="url-code">{row.expandedUrl}</code>
+                    <UrlValue hint="Opens in a new tab and fires this beacon for real" url={row.expandedUrl} />
                   </article>
                 ))}
               </div>
@@ -3630,6 +3815,7 @@ function App() {
         </Section>
 
         <Section
+          id="export"
           title="Share and export"
           open={openSections.export}
           onToggle={() => toggleSection("export")}
@@ -3681,6 +3867,7 @@ function App() {
 }
 
 function Section({
+  id,
   title,
   meta,
   open,
@@ -3688,6 +3875,7 @@ function Section({
   panelRef,
   children,
 }: {
+  id: SectionId;
   title: string;
   meta?: ReactNode;
   open: boolean;
@@ -3696,7 +3884,7 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className={`panel${open ? " is-open" : ""}`} ref={panelRef}>
+    <section className={`panel${open ? " is-open" : ""}`} data-section={id} data-open={open} ref={panelRef}>
       <button className="panel-head" aria-expanded={open} onClick={onToggle} type="button">
         <span className={`panel-chevron${open ? " open" : ""}`} aria-hidden="true">
           ▾
@@ -3711,9 +3899,9 @@ function Section({
 
 function Metric({ label, value, accent }: { label: string; value: number | string; accent: string }) {
   return (
-    <div className={`metric accent-${accent}`}>
+    <div className={`metric accent-${accent}`} data-metric={label.toLowerCase().replace(/\s+/g, "-")}>
       <span>{label}</span>
-      <strong>{value}</strong>
+      <strong data-metric-value={String(value)}>{value}</strong>
     </div>
   );
 }
@@ -3753,7 +3941,9 @@ function CreativePreviewCard({ item, label }: { item: RuntimeCreativePreview; la
         </div>
         <div>
           <dt>Click-through</dt>
-          <dd className="truncate-url" title={item.clickThroughUrl ?? undefined}>{item.clickThroughUrl ?? "none"}</dd>
+          <dd className="truncate-url">
+            <UrlValue hint="Open the landing page in a new tab" url={item.clickThroughUrl} variant="text" />
+          </dd>
         </div>
       </dl>
     </article>
@@ -3823,7 +4013,7 @@ function ResolvedAdCard({ index, resolvedAd }: { index: number; resolvedAd: Vast
               <strong>{mediaFile.mimeType}</strong>
               <span>{mediaFile.width} x {mediaFile.height}</span>
               <span>{mediaFile.delivery}</span>
-              <code>{mediaFile.url}</code>
+              <UrlValue hint="Open this media file in a new tab" url={mediaFile.url} />
             </div>
           ))
         )}

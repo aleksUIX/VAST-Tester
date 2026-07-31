@@ -30,6 +30,11 @@
   box-sizing: border-box;
 }
 
+html {
+  /* Keeps scrolled-to content clear of the sticky status bar. */
+  scroll-padding-top: 72px;
+}
+
 html,
 body,
 #root {
@@ -500,6 +505,11 @@ a {
 
 /* ---------- xml editor ---------- */
 
+/*
+ * Line height and top padding are supplied by App.tsx (EDITOR_GEOMETRY) so the
+ * marker arithmetic and the rendered text can never disagree. The fallbacks
+ * here only matter if the inline style is missing.
+ */
 .editor-shell {
   --editor-line-height: 24px;
   --editor-padding-top: 12px;
@@ -507,11 +517,7 @@ a {
   --editor-annotation-width: 220px;
   position: relative;
   border: 1px solid var(--line-strong);
-  background:
-    linear-gradient(#ffffff, #ffffff),
-    repeating-linear-gradient(180deg, transparent, transparent calc(var(--editor-line-height) - 1px), #f5f5f5 calc(var(--editor-line-height) - 1px), #f5f5f5 var(--editor-line-height));
-  background-origin: border-box;
-  background-clip: padding-box, border-box;
+  background: #ffffff;
   overflow: hidden;
 }
 
@@ -524,10 +530,14 @@ a {
   border-style: dashed;
 }
 
+/*
+ * inset: 0, not 1px. The containing block is already the shell's padding box,
+ * so insetting again pushes every marker band a pixel below its text row.
+ */
 .editor-overlay {
   position: absolute;
-  inset: 1px;
-  overflow: hidden;
+  inset: 0;
+  overflow: clip;
   pointer-events: none;
   z-index: 2;
 }
@@ -621,6 +631,12 @@ textarea.annotated-textarea {
   font-family: var(--mono);
   font-size: var(--small);
   line-height: var(--editor-line-height);
+  /*
+   * No soft wrapping. A wrapped source line would occupy two rendered rows and
+   * every marker below it would sit one row too high.
+   */
+  white-space: pre;
+  overflow-x: auto;
 }
 
 .editor-shell.has-markers textarea.annotated-textarea {
@@ -1073,9 +1089,66 @@ button:not(:disabled).ghost:hover {
 .url-code {
   display: block;
   color: var(--muted);
+  font-family: var(--mono);
   font-size: var(--label);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.url-text {
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+
+/*
+ * In-content links keep the colour of the text around them and carry a faint
+ * underline, so a dense table does not turn into a wall of red. Accent is
+ * reserved for hover and focus.
+ */
+a.url-link,
+.line-jump,
+.rule-link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 2px;
+}
+
+a.url-link:hover,
+a.url-link:focus-visible,
+.line-jump:hover,
+.line-jump:focus-visible,
+.rule-link:hover,
+.rule-link:focus-visible {
+  color: var(--accent);
+  text-decoration-color: var(--accent);
+}
+
+.rule-link {
+  font-family: var(--mono);
+  overflow-wrap: anywhere;
+}
+
+.line-jump {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.external-glyph {
+  width: 0.72em;
+  height: 0.72em;
+  margin-left: 0.36em;
+  vertical-align: baseline;
+  opacity: 0.65;
+}
+
+a:hover > .external-glyph,
+a:focus-visible > .external-glyph {
+  opacity: 1;
 }
 
 .findings-columns {
@@ -1292,12 +1365,11 @@ button:not(:disabled).ghost:hover {
   font-size: var(--small);
 }
 
-.media-item span,
-.media-item code {
+.media-item span {
   color: var(--muted);
 }
 
-.media-item code {
+.media-item .url-code {
   font-size: var(--label);
   word-break: break-all;
 }

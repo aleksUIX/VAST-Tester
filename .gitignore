@@ -31,3 +31,21 @@ yarn-error.log*
 *.tsbuildinfo
 /vite.config.js
 /vite.config.d.ts
+
+# Playwright
+/test-results
+/playwright-report
+/blob-report
+/playwright/.cache
+/demo-output
+
+# Local-only development material, not part of the published package
+/e2e/
+/playwright.config.ts
+/tsconfig.e2e.json
+/DEMO-SCRIPT.md
+/vo recordings/
+/.github/
+/.wrangler/
+/*.mp4
+/*.mov
