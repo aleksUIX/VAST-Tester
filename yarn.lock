@@ -944,24 +944,24 @@ uuid@^11.1.1:
   resolved "https://registry.npmjs.org/uuid/-/uuid-11.1.1.tgz"
   integrity sha512-vIYxrBCC/N/K+Js3qSN88go7kIfNPssr/hHCesKCQNAjmgvYS2oqr69kIufEG+O4+PfezOH4EbIeHCfFov8ZgQ==
 
-vastlint-client@^0.11.3, vastlint-client@0.11.3:
-  version "0.11.3"
-  resolved "https://registry.npmjs.org/vastlint-client/-/vastlint-client-0.11.3.tgz"
-  integrity sha512-oqQdH6BQWeB6ZCzr/TrNiI1X2L6CvTGx04fqscBKHolU4eNFI9L6L6FMmqrVKHOchUhLM6JJpioh0t0WGpdO0w==
+vastlint-client@^0.11.5, vastlint-client@0.11.5:
+  version "0.11.5"
+  resolved "https://registry.npmjs.org/vastlint-client/-/vastlint-client-0.11.5.tgz"
+  integrity sha512-UxQIXokmlz8WafabK0USCbwvHv0i9U8z23npf3hgjGz3bMbdrreeimZ4YLbzYUZyFKXviFI4KBsdz3GEX4z00Q==
   dependencies:
-    vastlint "^0.11.3"
+    vastlint "^0.11.5"
 
-vastlint-react@0.11.3:
-  version "0.11.3"
-  resolved "https://registry.npmjs.org/vastlint-react/-/vastlint-react-0.11.3.tgz"
-  integrity sha512-u4Jt3riGF05udQdLlAToic0LQESUyY+CmKtBv88iQv+FL/uAAdFx7qPgQE5WVifmt2yaWC7y5LHcBCW6xXRIXA==
+vastlint-react@0.11.5:
+  version "0.11.5"
+  resolved "https://registry.npmjs.org/vastlint-react/-/vastlint-react-0.11.5.tgz"
+  integrity sha512-BubokZgU8mgJ2PpZVmJZ4QPemq9PUYXTF8EHszTm0mfSY26EIOBRwzKYyw4pmYawW5GG1bksgqnbME/bcQc56A==
   dependencies:
-    vastlint-client "^0.11.3"
+    vastlint-client "^0.11.5"
 
-vastlint@^0.11.3, vastlint@0.11.3:
-  version "0.11.3"
-  resolved "https://registry.npmjs.org/vastlint/-/vastlint-0.11.3.tgz"
-  integrity sha512-EjH4njgTdWLvbWHpBnUymcQr22kci+67AvLdkyd0fBcW/f0V1LXq7TrbxaZ1LxvhuqpDpyHlS95+7CpAgAHaqg==
+vastlint@^0.11.5, vastlint@0.11.5:
+  version "0.11.5"
+  resolved "https://registry.npmjs.org/vastlint/-/vastlint-0.11.5.tgz"
+  integrity sha512-LBFskiFBfyOx8P8tSvX2CS8ac43vRZVFpSKcUqwZBvPvFaRjYCUO3aBI0gBylwn9cV85oFkpXSbZIvTxPQjvyg==
 
 vite-plugin-top-level-await@^1.6.0:
   version "1.6.0"
