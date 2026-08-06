@@ -129,6 +129,10 @@ a {
   border-color: var(--accent);
 }
 
+.masthead-links a.masthead-mail {
+  white-space: nowrap;
+}
+
 /* ---------- sticky status bar ---------- */
 
 .statusbar {
@@ -1023,6 +1027,15 @@ button:not(:disabled).ghost:hover {
 
 .findings-selected {
   box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.findings-feedback {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: var(--small);
+  line-height: 1.55;
 }
 
 /* ---------- tables ---------- */

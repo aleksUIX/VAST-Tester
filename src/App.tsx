@@ -229,6 +229,7 @@ const EDITOR_GEOMETRY = {
   "--editor-padding-top": `${String(EDITOR_VERTICAL_PADDING)}px`,
 } as CSSProperties;
 const RULE_DOCS_BASE = "https://vastlint.org/docs/rules";
+const FEEDBACK_EMAIL = "alex@vastlint.org";
 const DEFAULT_APP_ORIGIN = "http://localhost:5175";
 const SCENARIO_FALLBACK_ASSET_ORIGIN = "https://iab-tech-lab-vast-tester.vastlint.org";
 const APP_BASE_PATH = import.meta.env.BASE_URL ?? "/";
@@ -1709,6 +1710,12 @@ function ruleDocsUrl(ruleId: string) {
   return `${RULE_DOCS_BASE}/${encodeURIComponent(ruleId)}`;
 }
 
+function feedbackMailto(subject: string, bodyLines: (string | null)[] = []) {
+  const body = bodyLines.filter((line): line is string => line !== null && line.length > 0).join("\n");
+  const query = `subject=${encodeURIComponent(subject)}${body ? `&body=${encodeURIComponent(body)}` : ""}`;
+  return `mailto:${FEEDBACK_EMAIL}?${query}`;
+}
+
 function isFollowableUrl(value: string | null | undefined): value is string {
   return typeof value === "string" && /^https?:\/\//i.test(value.trim());
 }
@@ -1975,6 +1982,17 @@ function App() {
     () => selectedFindingLine === null ? issues : issues.filter((issue) => issue.line === selectedFindingLine),
     [issues, selectedFindingLine],
   );
+  const findingsFeedbackMailto = useMemo(() => {
+    const ruleIds = [...new Set(displayedIssues.map((issue) => issue.id))].slice(0, 12);
+    return feedbackMailto("VAST Tester: wrong or unclear finding", [
+      "Which finding looks wrong, and what did you expect instead?",
+      "",
+      "",
+      "--- context, edit or delete as needed ---",
+      lastRun.sourceMode === "url" ? `Tag: ${lastRun.payload}` : "Tag: pasted XML",
+      ruleIds.length > 0 ? `Rules reported: ${ruleIds.join(", ")}` : null,
+    ]);
+  }, [displayedIssues, lastRun.payload, lastRun.sourceMode]);
   const runnerDocumentUrls = useMemo(() => {
     const urls = new Set<string>();
     if (lastRun.sourceMode === "url") {
@@ -2820,7 +2838,9 @@ function App() {
             Start a discussion
             <ExternalGlyph />
           </a>
-          <a href="mailto:aleks@vastlint.org?subject=VAST%20Tester%20feedback">Send feedback</a>
+          <a className="masthead-mail" href={feedbackMailto("VAST Tester feedback")}>
+            Email {FEEDBACK_EMAIL}
+          </a>
         </nav>
       </header>
 
@@ -3287,6 +3307,17 @@ function App() {
               ))}
             </div>
           )}
+
+          {displayedIssues.length > 0 ? (
+            <p className="findings-feedback">
+              A finding look wrong, or a rule need explaining? Email <a href={findingsFeedbackMailto}>{FEEDBACK_EMAIL}</a>{" "}
+              with the tag and the rule ID, or{" "}
+              <a href="https://github.com/aleksUIX/vastlint/issues/new" rel="noreferrer noopener" target="_blank">
+                open a GitHub issue
+              </a>
+              .
+            </p>
+          ) : null}
         </Section>
 
         <Section
@@ -3871,7 +3902,9 @@ function App() {
           <a href="https://github.com/aleksUIX/vastlint/discussions" rel="noreferrer noopener" target="_blank">
             start a discussion
           </a>{" "}
-          on the vastlint GitHub repo.
+          on the vastlint GitHub repo. No GitHub account? Email{" "}
+          <a href={feedbackMailto("VAST Tester feedback")}>{FEEDBACK_EMAIL}</a> instead. Every report is read by the
+          person who maintains the tool.
         </p>
       </footer>
     </div>
