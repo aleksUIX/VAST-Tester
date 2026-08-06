@@ -20,9 +20,9 @@
     "jszip": "^3.10.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "vastlint": "0.11.5",
-    "vastlint-client": "0.11.5",
-    "vastlint-react": "0.11.5"
+    "vastlint": "0.11.6",
+    "vastlint-client": "0.11.6",
+    "vastlint-react": "0.11.6"
   },
   "devDependencies": {
     "@types/react": "^19.2.2",
