@@ -34,6 +34,7 @@ yarn-error.log*
 
 # Playwright
 /test-results
+/workshop-report
 /playwright-report
 /blob-report
 /playwright/.cache
@@ -45,7 +46,14 @@ yarn-error.log*
 /tsconfig.e2e.json
 /DEMO-SCRIPT.md
 /vo recordings/
-/.github/
 /.wrangler/
+
+# GitHub config: only the Pages deploy workflow is published; everything else
+# under .github/ is local-only.
+/.github/*
+!/.github/workflows
+/.github/workflows/*
+!/.github/workflows/pages.yml
+
 /*.mp4
 /*.mov

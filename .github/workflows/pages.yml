@@ -1,0 +1,57 @@
+name: Deploy to GitHub Pages
+
+# Secondary deployment of the tester, on a different provider than the primary.
+# The primary is Cloudflare Pages, published with `npm run deploy:pages`, and
+# nothing here touches that path: same commit, same `tsc -b && vite build`, only
+# the base path differs. Cloudflare serves the app from a domain root, GitHub
+# Pages serves it from /VAST-Tester/, so the base is passed on the command line
+# rather than written into vite.config.ts, which keeps the Cloudflare build
+# byte-identical to what it was before this workflow existed.
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Queue deploys instead of cancelling them, so a build that finished always
+# gets published.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Not node-version-file: .nvmrc still carries the legacy upstream 14.17.0,
+      # which cannot run Vite 7.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+      - run: npx tsc -b
+      - run: npx vite build --base=/VAST-Tester/
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
