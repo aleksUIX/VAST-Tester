@@ -45,6 +45,8 @@ This UI is the interactive frontend layer for the broader `vastlint` ecosystem.
 
 Use this repo when you want a browser-first debugging workflow. Use `vastlint` directly when you want CLI automation, CI checks, MCP integration, or to embed VAST validation inside another system.
 
+SIMID is split the same way. `vastlint` checks the VAST envelope (`type`, `apiFramework`, HTTPS, fallback media). Fetching the creative HTML, reading frame headers, and (later) driving `createSession` belong here. A tag that is XML-clean and still dies in the player is tester work, not a bid-time verdict.
+
 ## Getting Started
 
 Install dependencies:
