@@ -1,0 +1,34 @@
+<html>
+  <head>
+    <style>
+      html, body { margin: 0; background: transparent; }
+    </style>
+    <script src="simid_protocol.js"> </script>
+    <script src="base_simid_creative.js"> </script>
+    <script src="simid_overlay.js"> </script>
+  </head>
+  <body>
+	<button id="request_play">Request Play</button><br>
+	<button id="request_pause">Request Pause</button><br>
+	<button id="request_full_screen">Request Full Screen</button><br>
+	<button id="fatal_error">Fatal Error</button><br>
+	<button id="request_skip">Request Skip</button><br>
+  <button id="request_stop">Request Stop</button>
+  <div id="log_container">
+    <input type="text" id="log_input"></input>
+    <button id="log_button">Log</button>
+  </div>
+  <div id="change_duration_container">
+    <input type="text" id="change_duration_input"></input>
+    <button id="change_duration_button">Change Duration</button>
+  </div>
+  <div id="information" style="color:green">Sample Simid Ad</div>
+  <script>
+    // The creative should first call ready
+    const simidOverlay = new SimidOverlay();
+    // This implementation is immediately ready but other creatives
+    // may wish to wait for assets to load before calling ready.
+    simidOverlay.ready();
+  </script>
+  </body>
+</html>

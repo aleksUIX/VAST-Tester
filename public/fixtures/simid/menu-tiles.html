@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIMID sample: menu tiles</title>
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; font-family: "Helvetica Neue", Arial, sans-serif; }
+  #root { position: absolute; inset: 0; display: none; }
+  #root.live { display: block; }
+  .rail {
+    position: absolute; left: 12px; right: 12px; bottom: 14px;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  }
+  .tile {
+    padding: 10px; background: rgba(12, 12, 12, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #fff; text-align: left; cursor: pointer;
+  }
+  .tile:hover { border-color: #ed3628; }
+  .tile span { display: block; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.6; }
+  .tile strong { display: block; margin-top: 4px; font-size: 13px; }
+  .note { position: absolute; left: 12px; bottom: 86px; font-size: 10px; color: rgba(255,255,255,0.7); }
+</style>
+</head>
+<body>
+<div id="root">
+  <div class="note">Menu / tile is Native in the CTV portfolio. This SIMID rail is a VAST stand-in for QA.</div>
+  <div class="rail">
+    <button class="tile" data-id="continue" type="button"><span>Now</span><strong>Continue</strong></button>
+    <button class="tile" data-id="mug" type="button"><span>Shop</span><strong>North Mug</strong></button>
+    <button class="tile" data-id="bottle" type="button"><span>Shop</span><strong>Trail Bottle</strong></button>
+    <button class="tile" data-id="pack" type="button"><span>Shop</span><strong>Night Pack</strong></button>
+  </div>
+</div>
+<script src="simid-creative.js"></script>
+<script>
+  (function () {
+    var simid = new SimidCreative();
+    simid.onStart = function () {
+      document.getElementById("root").classList.add("live");
+      simid.reportTracking(["https://example.com/simid/menu/rendered"]);
+    };
+    simid.onAdSkipped = simid.onAdStopped = function () {
+      document.getElementById("root").classList.remove("live");
+    };
+    document.querySelector(".rail").addEventListener("click", function (event) {
+      var node = event.target.closest("[data-id]");
+      if (!node) {
+        return;
+      }
+      simid.reportTracking(["https://example.com/simid/menu/tile/" + node.getAttribute("data-id")]);
+      simid.clickThru(event.clientX, event.clientY, true);
+    });
+    simid.connect();
+  })();
+</script>
+</body>
+</html>

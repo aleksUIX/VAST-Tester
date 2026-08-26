@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIMID sample: squeezeback L-bar</title>
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; font-family: "Helvetica Neue", Arial, sans-serif; }
+  #root { position: absolute; inset: 0; display: none; pointer-events: none; }
+  #root.live { display: block; }
+  .left, .bottom { position: absolute; background: rgba(12, 12, 12, 0.92); color: #fff; pointer-events: auto; }
+  .left { top: 0; left: 0; bottom: 72px; width: 88px; padding: 12px 8px; }
+  .bottom { left: 0; right: 0; bottom: 0; height: 72px; display: flex; align-items: center; gap: 10px; padding: 0 12px 0 100px; }
+  .kicker { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.65; writing-mode: vertical-rl; transform: rotate(180deg); }
+  .bottom strong { font-size: 13px; }
+  .bottom span { font-size: 11px; opacity: 0.7; flex: 1; }
+  button { padding: 7px 12px; border: 0; border-radius: 4px; background: #ed3628; color: #fff; font-size: 12px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="root">
+  <div class="left"><div class="kicker">Squeezeback</div></div>
+  <div class="bottom">
+    <strong>North Mug</strong>
+    <span>L-bar around squeezed content. SIMID CTV portfolio.</span>
+    <button id="shop" type="button">Shop</button>
+  </div>
+</div>
+<script src="simid-creative.js"></script>
+<script>
+  (function () {
+    var simid = new SimidCreative();
+    simid.onStart = function () {
+      document.getElementById("root").classList.add("live");
+      simid.reportTracking(["https://example.com/simid/squeezeback/rendered"]);
+    };
+    simid.onAdSkipped = simid.onAdStopped = function () {
+      document.getElementById("root").classList.remove("live");
+    };
+    document.getElementById("shop").addEventListener("click", function (event) {
+      simid.reportTracking(["https://example.com/simid/squeezeback/shop"]);
+      simid.clickThru(event.clientX, event.clientY, true);
+    });
+    simid.connect();
+  })();
+</script>
+</body>
+</html>

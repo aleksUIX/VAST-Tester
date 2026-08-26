@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIMID sample: screensaver</title>
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; font-family: "Helvetica Neue", Arial, sans-serif; }
+  #root { position: absolute; inset: 0; display: none; }
+  #root.live {
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle at 30% 20%, #2a3340, #0b1016 62%);
+  }
+  .brand { text-align: center; color: #fff; }
+  .brand span { display: block; letter-spacing: 0.28em; text-transform: uppercase; font-size: 11px; opacity: 0.7; }
+  .brand h1 { margin: 10px 0 8px; font-size: 28px; font-weight: 500; }
+  .brand p { margin: 0 0 16px; font-size: 13px; opacity: 0.72; }
+  button { padding: 9px 16px; border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 4px; background: transparent; color: #fff; cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="root">
+  <div class="brand">
+    <span>Screensaver · CTV portfolio</span>
+    <h1>North Goods</h1>
+    <p>Idle screen. Interactive brand hold with a SIMID CTA.</p>
+    <button id="shop" type="button">Browse the line</button>
+  </div>
+</div>
+<script src="simid-creative.js"></script>
+<script>
+  (function () {
+    var simid = new SimidCreative();
+    simid.onStart = function () {
+      document.getElementById("root").classList.add("live");
+      simid.reportTracking(["https://example.com/simid/screensaver/rendered"]);
+    };
+    simid.onAdSkipped = simid.onAdStopped = function () {
+      document.getElementById("root").classList.remove("live");
+    };
+    document.getElementById("shop").addEventListener("click", function (event) {
+      simid.reportTracking(["https://example.com/simid/screensaver/shop"]);
+      simid.clickThru(event.clientX, event.clientY, true);
+    });
+    simid.connect();
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.4">
+  <Ad id="vast44-inscene-1">
+    <InLine>
+      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdServingId>vast44-inscene-1</AdServingId>
+      <AdTitle>VAST 4.4 in-scene</AdTitle>
+      <Error><![CDATA[https://example.com/error?code=%%ERRORCODE%%]]></Error>
+      <Impression><![CDATA[https://example.com/impression]]></Impression>
+      <Creatives>
+        <Creative id="vast44-inscene-creative">
+          <UniversalAdId idRegistry="Ad-ID">INSCENE-8465</UniversalAdId>
+          <NonLinearAds>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://example.com/start]]></Tracking>
+              <Tracking event="firstQuartile"><![CDATA[https://example.com/first-quartile]]></Tracking>
+              <Tracking event="midpoint"><![CDATA[https://example.com/midpoint]]></Tracking>
+              <Tracking event="thirdQuartile"><![CDATA[https://example.com/third-quartile]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://example.com/complete]]></Tracking>
+            </TrackingEvents>
+            <NonLinear id="nl-inscene" width="1400" height="400" scalable="true" maintainAspectRatio="true">
+              <Duration>00:00:05</Duration>
+              <MediaFiles>
+                <MediaFile delivery="progressive" type="video/webm" width="1400" height="400" bitrate="800"><![CDATA[/fixtures/video/360p30.webm]]></MediaFile>
+                <MediaFile delivery="progressive" type="video/mp4" width="1400" height="400" bitrate="1200"><![CDATA[/fixtures/video/360p30.mp4]]></MediaFile>
+              </MediaFiles>
+              <NonLinearClickThrough><![CDATA[https://example.com/inscene-click]]></NonLinearClickThrough>
+            </NonLinear>
+          </NonLinearAds>
+        </Creative>
+      </Creatives>
+      <Extensions>
+        <Extension type="plcmt" ext="adcom"><plcmt>9</plcmt></Extension>
+        <Extension type="pos" ext="adcom"><pos>11</pos></Extension>
+        <Extension type="playbackmethod" ext="adcom"><playbackmethod>2</playbackmethod></Extension>
+        <Extension type="attr" ext="adcom"><attr>23</attr></Extension>
+      </Extensions>
+    </InLine>
+  </Ad>
+</VAST>

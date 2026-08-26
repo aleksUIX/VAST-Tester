@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.4">
+  <Ad id="vast44-screensaver-1">
+    <InLine>
+      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdServingId>vast44-screensaver-1</AdServingId>
+      <AdTitle>VAST 4.4 screensaver</AdTitle>
+      <Error><![CDATA[https://example.com/error?code=%%ERRORCODE%%]]></Error>
+      <Impression><![CDATA[https://example.com/impression]]></Impression>
+      <Creatives>
+        <Creative id="vast44-screensaver-creative">
+          <UniversalAdId idRegistry="Ad-ID">SCREENSAVER-8465</UniversalAdId>
+          <NonLinearAds>
+            <NonLinear id="nl-screensaver" width="1920" height="1080" scalable="true" maintainAspectRatio="true">
+              <StaticResource creativeType="image/png"><![CDATA[https://dummyimage.com/1920x1080/0b1a2b/ffffff.png&text=Screensaver]]></StaticResource>
+              <NonLinearClickThrough><![CDATA[https://example.com/screensaver-click]]></NonLinearClickThrough>
+              <NonLinearClickTracking><![CDATA[https://example.com/screensaver-click-track]]></NonLinearClickTracking>
+            </NonLinear>
+            <TrackingEvents>
+              <Tracking event="creativeView"><![CDATA[https://example.com/creative-view]]></Tracking>
+              <Tracking event="overlayViewDuration"><![CDATA[https://example.com/overlay-view]]></Tracking>
+              <Tracking event="close"><![CDATA[https://example.com/close]]></Tracking>
+            </TrackingEvents>
+          </NonLinearAds>
+        </Creative>
+      </Creatives>
+      <Extensions>
+        <Extension type="plcmt" ext="adcom"><plcmt>6</plcmt></Extension>
+        <Extension type="pos" ext="adcom"><pos>7</pos></Extension>
+        <Extension type="playbackmethod" ext="adcom"><playbackmethod>11</playbackmethod></Extension>
+        <Extension type="attr" ext="adcom"><attr>21</attr></Extension>
+      </Extensions>
+    </InLine>
+  </Ad>
+</VAST>

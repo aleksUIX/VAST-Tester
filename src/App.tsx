@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode, Ref } from "react";
 import JSZip from "jszip";
 import { useVastPlayback, useVastSession, useVastTracker } from "vastlint-react";
+import { recordUsageSample } from "./collectSample";
+import { SampleNote } from "./SampleNote";
 import adIdentityXml from "./scenarios/ad-identity.xml?raw";
 import adVerificationXml from "./scenarios/ad-verification.xml?raw";
 import brokenXml from "./scenarios/broken-tag.xml?raw";
@@ -15,10 +17,33 @@ import nonLinearOverlayXml from "./scenarios/non-linear-overlay.xml?raw";
 import pricingCategoryXml from "./scenarios/pricing-category.xml?raw";
 import runtimeSurfacesXml from "./scenarios/runtime-surfaces.xml?raw";
 import sampleXml from "./scenarios/sample-inline.xml?raw";
+import simidInteractivePollXml from "./scenarios/simid-interactive-poll.xml?raw";
+import simidMenuTilesXml from "./scenarios/simid-menu-tiles.xml?raw";
+import simidOverlayBannerXml from "./scenarios/simid-overlay-banner.xml?raw";
+import simidOverlayCarouselXml from "./scenarios/simid-overlay-carousel.xml?raw";
+import simidOverlayShoppableXml from "./scenarios/simid-overlay-shoppable.xml?raw";
+import simidIabExtenderXml from "./scenarios/simid-iab-extender.xml?raw";
+import simidIabOverlayXml from "./scenarios/simid-iab-overlay.xml?raw";
+import simidIabSurveyXml from "./scenarios/simid-iab-survey.xml?raw";
+import simidIabTestersNonlinearXml from "./scenarios/simid-iab-testers-nonlinear.xml?raw";
+import simidProtocolExplorerXml from "./scenarios/simid-protocol-explorer.xml?raw";
 import skippableLinearXml from "./scenarios/skippable-linear.xml?raw";
+import vast44InsceneXml from "./scenarios/vast44-inscene.xml?raw";
+import vast44InsceneSimidXml from "./scenarios/vast44-inscene-simid.xml?raw";
+import vast44OverlaySimidXml from "./scenarios/vast44-overlay-simid.xml?raw";
+import vast44PauseSimidXml from "./scenarios/vast44-pause-simid.xml?raw";
+import vast44PauseStaticXml from "./scenarios/vast44-pause-static.xml?raw";
+import vast44PauseVideoXml from "./scenarios/vast44-pause-video.xml?raw";
+import vast44ScreensaverXml from "./scenarios/vast44-screensaver.xml?raw";
+import vast44ScreensaverSimidXml from "./scenarios/vast44-screensaver-simid.xml?raw";
+import vast44SqueezebackXml from "./scenarios/vast44-squeezeback.xml?raw";
+import vast44SqueezebackSimidXml from "./scenarios/vast44-squeezeback-simid.xml?raw";
 import viewableImpressionXml from "./scenarios/viewable-impression.xml?raw";
 import wrapperSignalsXml from "./scenarios/wrapper-signals.xml?raw";
 
+import { OverlayStage, SimidInspectPanel, type SimidCommands } from "./qa/QaStudio";
+import { parseCreativeSurfaces } from "./qa/parseCreativeSurfaces";
+import { resolveQaAssetUrl } from "./qa/resolveQaAssetUrl";
 import type { FixResult, Issue, ValidateOptions } from "vastlint";
 import { createVastSession } from "vastlint-client";
 
@@ -62,7 +87,7 @@ const COLLAPSED_SECTIONS: Record<SectionId, boolean> = {
   export: false,
 };
 type ComplianceProfileId = "strict-iab" | "ctv-safe" | "ssai-safe" | "legacy-player";
-type ScenarioGroupId = "core" | "creative-types" | "measurement" | "ctv-ssai";
+type ScenarioGroupId = "core" | "creative-types" | "simid" | "measurement" | "ctv-ssai" | "vast-4-4";
 type ScenarioActionFilter = "all" | ActionMode;
 
 interface RunRequest {
@@ -103,7 +128,7 @@ interface TimelineEntry {
   at: string;
   title: string;
   detail: string;
-  kind: "ui" | "media" | "session" | "tracking";
+  kind: "ui" | "media" | "session" | "tracking" | "simid";
 }
 
 interface RuntimeVerificationResource {
@@ -418,6 +443,116 @@ const SCENARIO_PRESETS: readonly ScenarioPreset[] = [
     payload: runtimeSurfacesXml,
   },
   {
+    id: "simid-overlay-banner",
+    label: "SIMID overlay banner",
+    description: "Linear video with a SIMID lower-third creative. Handshake and overlay render in the playback stage.",
+    groupId: "simid",
+    versionLabel: "VAST 4.1",
+    focusAreas: ["simid", "overlay", "playback"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: simidOverlayBannerXml,
+  },
+  {
+    id: "simid-interactive-poll",
+    label: "SIMID interactive poll",
+    description: "SIMID creative that requests pause while a poll is open, then resumes playback.",
+    groupId: "simid",
+    versionLabel: "VAST 4.1",
+    focusAreas: ["simid", "interactive"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: simidInteractivePollXml,
+  },
+  {
+    id: "simid-protocol-explorer",
+    label: "SIMID protocol explorer",
+    description: "SIMID creative that fires player requests (pause, skip, clickThru, duration) for protocol QA.",
+    groupId: "simid",
+    versionLabel: "VAST 4.1",
+    focusAreas: ["simid", "protocol"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: simidProtocolExplorerXml,
+  },
+  {
+    id: "simid-overlay-carousel",
+    label: "SIMID product carousel",
+    description: "Linear video with a SIMID product rail. Prev/next reports view tracking; Shop sends clickThru.",
+    groupId: "simid",
+    versionLabel: "VAST 4.1",
+    focusAreas: ["simid", "overlay", "carousel", "commerce"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: simidOverlayCarouselXml,
+  },
+  {
+    id: "simid-overlay-shoppable",
+    label: "SIMID shoppable CTAs",
+    description: "SIMID overlay with add to cart, email, SMS, app, and call. Cart pauses playback, then resumes.",
+    groupId: "simid",
+    versionLabel: "VAST 4.1",
+    focusAreas: ["simid", "overlay", "shoppable", "commerce"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: simidOverlayShoppableXml,
+  },
+  {
+    id: "simid-menu-tiles",
+    label: "SIMID menu tiles",
+    description: "VAST stand-in for CTV menu/tile. The portfolio ships that format as OpenRTB Native, not VAST NonLinear.",
+    groupId: "simid",
+    versionLabel: "VAST 4.1",
+    focusAreas: ["simid", "menu", "tile", "native", "portfolio"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: simidMenuTilesXml,
+  },
+  {
+    id: "simid-iab-overlay",
+    label: "IAB SIMID overlay",
+    description: "IAB Tech Lab sample overlay. Protocol buttons for play, pause, skip, fullscreen, log, and duration.",
+    groupId: "simid",
+    versionLabel: "VAST 4.1",
+    focusAreas: ["simid", "overlay", "iab", "protocol"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: simidIabOverlayXml,
+  },
+  {
+    id: "simid-iab-survey",
+    label: "IAB SIMID survey",
+    description: "IAB sample survey. AdParameters JSON drives questions; completing the survey requests skip.",
+    groupId: "simid",
+    versionLabel: "VAST 4.1",
+    focusAreas: ["simid", "survey", "iab", "adparameters"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: simidIabSurveyXml,
+  },
+  {
+    id: "simid-iab-extender",
+    label: "IAB SIMID extender",
+    description: "IAB sample that asks for five extra seconds via getMediaState then requestChangeAdDuration.",
+    groupId: "simid",
+    versionLabel: "VAST 4.1",
+    focusAreas: ["simid", "duration", "iab"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: simidIabExtenderXml,
+  },
+  {
+    id: "simid-iab-testers-nonlinear",
+    label: "IAB SIMID testers nonlinear",
+    description: "IAB nonlinear testers: expand, collapse, and resize against a NonLinear InteractiveCreativeFile.",
+    groupId: "simid",
+    versionLabel: "VAST 4.1",
+    focusAreas: ["simid", "nonlinear", "iab", "resize"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: simidIabTestersNonlinearXml,
+  },
+  {
     id: "click-tracking",
     label: "Click tracking",
     description: "Video click-through, click tracking, and custom click URLs in one linear ad.",
@@ -494,6 +629,116 @@ const SCENARIO_PRESETS: readonly ScenarioPreset[] = [
     action: "validate",
     payload: closedCaptionsXml,
   },
+  {
+    id: "vast44-pause-static",
+    label: "Pause static",
+    description: "CTV pause placement: static image, AdChoices icon, QR geometry, and AdCOM pause signals on the 4.4 draft.",
+    groupId: "vast-4-4",
+    versionLabel: "VAST 4.4 (beta)",
+    focusAreas: ["pause", "qr", "adcom", "nonlinear"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: vast44PauseStaticXml,
+  },
+  {
+    id: "vast44-pause-video",
+    label: "Pause video",
+    description: "Pause ad that delivers MP4 through NonLinear MediaFiles, the 4.4 content model the JPEG-era spec did not have.",
+    groupId: "vast-4-4",
+    versionLabel: "VAST 4.4 (beta)",
+    focusAreas: ["pause", "mediafiles", "adcom"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: vast44PauseVideoXml,
+  },
+  {
+    id: "vast44-screensaver",
+    label: "Screensaver",
+    description: "Fullscreen screensaver still with plcmt 6, playbackmethod 11, and static visual attr 21.",
+    groupId: "vast-4-4",
+    versionLabel: "VAST 4.4 (beta)",
+    focusAreas: ["screensaver", "adcom", "nonlinear"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: vast44ScreensaverXml,
+  },
+  {
+    id: "vast44-overlay-simid",
+    label: "Overlay SIMID",
+    description: "Preferred 4.4 overlay: SIMID InteractiveCreativeFile inside NonLinear MediaFiles, Duration, custom click, and QR.",
+    groupId: "vast-4-4",
+    versionLabel: "VAST 4.4 (beta)",
+    focusAreas: ["overlay", "simid", "qr", "adcom"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: vast44OverlaySimidXml,
+  },
+  {
+    id: "vast44-squeezeback",
+    label: "Squeezeback",
+    description: "L-bar squeezeback with Duration on NonLinear and AdCOM plcmt 8 / pos 16.",
+    groupId: "vast-4-4",
+    versionLabel: "VAST 4.4 (beta)",
+    focusAreas: ["squeezeback", "adcom", "nonlinear"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: vast44SqueezebackXml,
+  },
+  {
+    id: "vast44-inscene",
+    label: "In-scene",
+    description: "In-scene video insert through NonLinear MediaFiles with plcmt 9. pos is not applicable for this format.",
+    groupId: "vast-4-4",
+    versionLabel: "VAST 4.4 (beta)",
+    focusAreas: ["in-scene", "mediafiles", "adcom"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: vast44InsceneXml,
+  },
+  {
+    id: "vast44-pause-simid",
+    label: "Pause SIMID",
+    description: "Pause placement with SIMID InteractiveCreativeFile inside NonLinear MediaFiles. plcmt 5, playbackmethod 8.",
+    groupId: "vast-4-4",
+    versionLabel: "VAST 4.4 (beta)",
+    focusAreas: ["pause", "simid", "adcom", "nonlinear"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: vast44PauseSimidXml,
+  },
+  {
+    id: "vast44-screensaver-simid",
+    label: "Screensaver SIMID",
+    description: "Idle-screen SIMID brand hold. plcmt 6, playbackmethod 11, interactive attr 23.",
+    groupId: "vast-4-4",
+    versionLabel: "VAST 4.4 (beta)",
+    focusAreas: ["screensaver", "simid", "adcom"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: vast44ScreensaverSimidXml,
+  },
+  {
+    id: "vast44-squeezeback-simid",
+    label: "Squeezeback SIMID",
+    description: "L-bar SIMID around squeezed content. plcmt 8, pos 16.",
+    groupId: "vast-4-4",
+    versionLabel: "VAST 4.4 (beta)",
+    focusAreas: ["squeezeback", "simid", "adcom"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: vast44SqueezebackSimidXml,
+  },
+  {
+    id: "vast44-inscene-simid",
+    label: "In-scene SIMID",
+    description: "In-scene hotspot SIMID over NonLinear video. plcmt 9.",
+    groupId: "vast-4-4",
+    versionLabel: "VAST 4.4 (beta)",
+    focusAreas: ["in-scene", "simid", "adcom"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: vast44InsceneSimidXml,
+  },
 ];
 
 const SCENARIO_GROUPS: readonly ScenarioGroupDefinition[] = [
@@ -508,6 +753,11 @@ const SCENARIO_GROUPS: readonly ScenarioGroupDefinition[] = [
     description: "Non-linear, companion, icons, and mixed runtime surfaces that stress player integrations.",
   },
   {
+    id: "simid",
+    label: "SIMID interactive",
+    description: "InteractiveCreativeFile overlays: in-house samples plus IAB Tech Lab overlay, survey, extender, and nonlinear testers.",
+  },
+  {
     id: "measurement",
     label: "Measurement",
     description: "Click, wrapper, viewability, and OMID verification cases that tend to break analytics pipelines.",
@@ -517,6 +767,11 @@ const SCENARIO_GROUPS: readonly ScenarioGroupDefinition[] = [
     label: "CTV and SSAI",
     description: "Identity, mezzanine, and captioning samples for modern distribution workflows.",
   },
+  {
+    id: "vast-4-4",
+    label: "VAST 4.4 beta",
+    description: "CTV Ad Portfolio on the 4.4 draft: pause, screensaver, overlay, squeezeback, and in-scene, static, video, and SIMID. Menu/tile is Native; see SIMID menu tiles.",
+  },
 ];
 
 const SCENARIO_ROW_LIMIT = 5;
@@ -525,6 +780,30 @@ const GROUPED_SCENARIO_PRESETS = SCENARIO_GROUPS.map((group) => ({
   ...group,
   scenarios: SCENARIO_PRESETS.filter((scenario) => scenario.groupId === group.id),
 }));
+
+function scenarioMatchesQuery(
+  scenario: ScenarioPreset,
+  group: ScenarioGroupDefinition,
+  query: string,
+): boolean {
+  const tokens = query.trim().toLowerCase().split(/\s+/).filter((token) => token.length > 0);
+  if (tokens.length === 0) {
+    return true;
+  }
+
+  const haystack = [
+    scenario.label,
+    scenario.description,
+    scenario.versionLabel,
+    scenario.action,
+    group.label,
+    ...scenario.focusAreas,
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  return tokens.every((token) => haystack.includes(token));
+}
 
 const ACTION_LABELS: Record<ActionMode, string> = {
   validate: "Validate",
@@ -580,6 +859,23 @@ function buildScenarioFixtureUrl(path: string) {
 function absolutizeScenarioXmlLocalUrls(xml: string) {
   return xml.replace(/<!\[CDATA\[(\/[^\]]*)\]\]>/g, (_match, path: string) => {
     return `<![CDATA[${buildScenarioFixtureUrl(path)}]]>`;
+  });
+}
+
+function isBuiltInRun(run: { sourceMode: SourceMode; payload: string }, scenarioId: string | null): boolean {
+  if (scenarioId) return true;
+  const payload = run.payload.trim();
+  if (!payload) return true;
+  if (run.sourceMode === "url") {
+    if (payload.includes("/scenarios/")) return true;
+    return SCENARIO_PRESETS.some((scenario) => {
+      if (scenario.sourceMode !== "url") return false;
+      return scenario.payload === payload || buildScenarioFixtureUrl(scenario.payload) === payload;
+    });
+  }
+  return SCENARIO_PRESETS.some((scenario) => {
+    if (scenario.sourceMode !== "xml") return false;
+    return scenario.payload.trim() === payload || absolutizeScenarioXmlLocalUrls(scenario.payload).trim() === payload;
   });
 }
 
@@ -1806,8 +2102,11 @@ function App() {
   const [scenarioVersionFilter, setScenarioVersionFilter] = useState("all");
   const [scenarioActionFilter, setScenarioActionFilter] = useState<ScenarioActionFilter>("all");
   const [scenarioSurfaceFilter, setScenarioSurfaceFilter] = useState("all");
+  const [scenarioQuery, setScenarioQuery] = useState("");
   const [expandedScenarioGroups, setExpandedScenarioGroups] = useState<Record<string, boolean>>({});
   const [scenarioLibraryOpen, setScenarioLibraryOpen] = useState(false);
+  const [runnerAudioMuted, setRunnerAudioMuted] = useState(true);
+  const [simidStudioOpen, setSimidStudioOpen] = useState(false);
   const [lastRun, setLastRun] = useState<RunRequest>({
     id: 1,
     sourceMode: sharedSession?.sourceMode ?? "xml",
@@ -1827,6 +2126,7 @@ function App() {
   const findingsSectionRef = useRef<HTMLElement | null>(null);
   const runnerEventCounter = useRef(0);
   const runnerVideoRef = useRef<HTMLVideoElement | null>(null);
+  const simidCommandsRef = useRef<SimidCommands | null>(null);
   const xmlTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const runnerProgressBucketRef = useRef(-1);
   const macroDefaultsRef = useRef({
@@ -1943,16 +2243,21 @@ function App() {
           return false;
         }
 
-        return true;
+        return scenarioMatchesQuery(scenario, group, scenarioQuery);
       }),
     })).filter((group) => group.scenarios.length > 0),
-    [scenarioActionFilter, scenarioSurfaceFilter, scenarioVersionFilter],
+    [scenarioActionFilter, scenarioQuery, scenarioSurfaceFilter, scenarioVersionFilter],
   );
   const filteredScenarioCount = useMemo(
     () => filteredScenarioGroups.reduce((count, group) => count + group.scenarios.length, 0),
     [filteredScenarioGroups],
   );
-  const hasScenarioFilters = scenarioVersionFilter !== "all" || scenarioActionFilter !== "all" || scenarioSurfaceFilter !== "all";
+  const hasScenarioFilters =
+    scenarioQuery.trim().length > 0
+    || scenarioVersionFilter !== "all"
+    || scenarioActionFilter !== "all"
+    || scenarioSurfaceFilter !== "all";
+  const scenarioSearchActive = scenarioQuery.trim().length > 0;
   const activeScenarioMatchesFilters = activeScenario === null
     ? true
     : filteredScenarioGroups.some((group) => group.scenarios.some((scenario) => scenario.id === activeScenario.id));
@@ -2039,6 +2344,7 @@ function App() {
     [resolvedAds, runnerSnapshot.resolvedAd],
   );
   const inspectionXml = snapshot.rootXml ?? (lastRun.sourceMode === "xml" ? lastRun.payload : null);
+  const creativeSurfaces = useMemo(() => parseCreativeSurfaces(inspectionXml), [inspectionXml]);
   const runtimeInspection = useMemo(
     () => buildRuntimeInspection(inspectionXml, inventoryAds),
     [inspectionXml, inventoryAds],
@@ -2047,6 +2353,7 @@ function App() {
     () => buildPlayableMediaUrl(runnerSnapshot.mediaSelection.selected?.url ?? null),
     [runnerSnapshot.mediaSelection.selected?.url],
   );
+  const stageMediaUrl = runnerMediaUrl ?? resolveQaAssetUrl(creativeSurfaces.stageVideoUrl);
   const macroPresets = useMemo(
     () => buildMacroPresetDefinitions(
       macroDefaultsRef.current,
@@ -2283,6 +2590,13 @@ function App() {
   }, [editorAnnotationsStale, editorIssueMarkers, selectedFindingLine, sourceMode]);
 
   useEffect(() => {
+    setRunnerAudioMuted(true);
+    if (runnerVideoRef.current) {
+      runnerVideoRef.current.muted = true;
+    }
+  }, [lastRun.id]);
+
+  useEffect(() => {
     const video = runnerVideoRef.current;
     if (!video) {
       return;
@@ -2298,15 +2612,17 @@ function App() {
     // A one-entry chain is just the root document, not a chain worth opening.
     wrappers: Math.max(0, snapshot.wrapperChain.length - 1),
     resolved: inventoryAds.length,
-    playback: runnerSnapshot.resolvedAd ? 1 : 0,
+    playback: runnerSnapshot.resolvedAd || creativeSurfaces.overlays.length > 0 ? 1 : 0,
     tracking: trackingWaterfallRows.length,
     runtime: runtimeInspection.verificationResources.length
       + runtimeInspection.companions.length
       + runtimeInspection.icons.length
-      + runtimeInspection.apiFrameworks.length,
+      + runtimeInspection.apiFrameworks.length
+      + creativeSurfaces.overlays.length,
     macros: 0,
     export: 0,
   }), [
+    creativeSurfaces.overlays.length,
     inventoryAds.length,
     issues.length,
     runnerSnapshot.resolvedAd,
@@ -2340,6 +2656,34 @@ function App() {
   const toggleSection = (id: SectionId) => {
     setOpenSections((current) => ({ ...current, [id]: !current[id] }));
   };
+
+  const openSimidStudio = () => {
+    setOpenSections((current) => ({ ...current, playback: true }));
+    setSimidStudioOpen(true);
+  };
+
+  useEffect(() => {
+    if (creativeSurfaces.simid.length === 0 && simidStudioOpen) {
+      setSimidStudioOpen(false);
+    }
+  }, [creativeSurfaces.simid.length, simidStudioOpen]);
+
+  useEffect(() => {
+    if (!simidStudioOpen) {
+      return;
+    }
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSimidStudioOpen(false);
+      }
+    };
+    document.body.classList.add("simid-studio-lock");
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.classList.remove("simid-studio-lock");
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [simidStudioOpen]);
 
   const appendRunnerTimeline = (kind: TimelineEntry["kind"], title: string, detail: string) => {
     runnerEventCounter.current += 1;
@@ -2636,11 +2980,16 @@ function App() {
   const preparePlaybackRunner = async () => {
     try {
       const prepared = await playback.initialize();
+      await playback.setMuted(true);
+      setRunnerAudioMuted(true);
+      if (runnerVideoRef.current) {
+        runnerVideoRef.current.muted = true;
+      }
       appendRunnerTimeline(
         "ui",
         "runner:prepare",
         prepared.mediaSelection.selected
-          ? `Prepared ${prepared.mediaSelection.selected.mimeType} media.`
+          ? `Prepared ${prepared.mediaSelection.selected.mimeType} media, muted.`
           : "Prepared session with no playable media selection.",
       );
     } catch (error) {
@@ -2692,7 +3041,8 @@ function App() {
 
   const toggleRunnerMute = async () => {
     const video = runnerVideoRef.current;
-    const nextMuted = !(video?.muted ?? runnerSnapshot.muted);
+    const nextMuted = !runnerAudioMuted;
+    setRunnerAudioMuted(nextMuted);
     if (video) {
       video.muted = nextMuted;
     }
@@ -2707,7 +3057,8 @@ function App() {
 
   const syncRunnerMuted = async () => {
     const video = runnerVideoRef.current;
-    const nextMuted = video?.muted ?? runnerSnapshot.muted;
+    const nextMuted = video?.muted ?? runnerAudioMuted;
+    setRunnerAudioMuted(nextMuted);
 
     try {
       await playback.setMuted(nextMuted);
@@ -2717,6 +3068,10 @@ function App() {
   };
 
   const handleRunnerPlay = async () => {
+    if (!runnerSnapshot.resolvedAd) {
+      return;
+    }
+
     try {
       if (runnerSnapshot.status === "paused") {
         await playback.resume();
@@ -2976,6 +3331,14 @@ function App() {
                     setSourceMode("xml");
                     setXmlDraft(event.target.value);
                   }}
+                  onPaste={(event) => {
+                    const raw = event.clipboardData?.getData("text") ?? "";
+                    if (!raw.trimStart().startsWith("<")) return;
+                    setActiveScenarioId(null);
+                    setSourceMode("xml");
+                    if (isBuiltInRun({ sourceMode: "xml", payload: raw }, null)) return;
+                    recordUsageSample({ xml: raw });
+                  }}
                   onFocus={() => setSourceMode("xml")}
                   onScroll={(event) => setEditorScrollTop(event.currentTarget.scrollTop)}
                   spellCheck={false}
@@ -3033,6 +3396,8 @@ function App() {
               </button>
             </div>
 
+            <SampleNote />
+
             {runError || snapshot.error ? <div className="banner error">{runError ?? snapshot.error?.message}</div> : null}
 
             {suspectedBlockedFetch ? (
@@ -3065,13 +3430,24 @@ function App() {
                 <span className="scenario-toggle-note">
                   {activeScenario !== null
                     ? `Active: ${activeScenario.label}`
-                    : `${String(SCENARIO_PRESETS.length)} presets across baseline, creative, measurement, and CTV coverage`}
+                    : `${String(SCENARIO_PRESETS.length)} presets across baseline, creative, SIMID, measurement, CTV, and VAST 4.4 beta coverage`}
                 </span>
               </button>
 
               {scenarioLibraryOpen ? (
                 <div className="scenario-body">
-                  <div className="scenario-filter-grid">
+                  <div className="scenario-toolbar">
+                    <label className="scenario-filter scenario-search">
+                      <span>Search</span>
+                      <input
+                        aria-label="Search scenarios"
+                        onChange={(event) => setScenarioQuery(event.target.value)}
+                        placeholder="Name, format, or surface"
+                        type="search"
+                        value={scenarioQuery}
+                      />
+                    </label>
+                    <div className="scenario-filter-grid">
                     <label className="scenario-filter">
                       <span>Version</span>
                       <select
@@ -3118,6 +3494,7 @@ function App() {
                       className="ghost scenario-reset"
                       disabled={!hasScenarioFilters}
                       onClick={() => {
+                        setScenarioQuery("");
                         setScenarioVersionFilter("all");
                         setScenarioActionFilter("all");
                         setScenarioSurfaceFilter("all");
@@ -3126,6 +3503,7 @@ function App() {
                     >
                       Reset
                     </button>
+                    </div>
                   </div>
 
                   <p className="scenario-count">
@@ -3137,7 +3515,7 @@ function App() {
 
                   <div className="scenario-groups">
                     {filteredScenarioGroups.map((group) => {
-                      const isExpanded = expandedScenarioGroups[group.id] === true;
+                      const isExpanded = scenarioSearchActive || expandedScenarioGroups[group.id] === true;
                       const visibleScenarios = isExpanded
                         ? group.scenarios
                         : group.scenarios.slice(0, SCENARIO_ROW_LIMIT);
@@ -3173,7 +3551,7 @@ function App() {
                               </button>
                             ))}
                           </div>
-                          {group.scenarios.length > SCENARIO_ROW_LIMIT ? (
+                          {!scenarioSearchActive && group.scenarios.length > SCENARIO_ROW_LIMIT ? (
                             <button
                               className="scenario-expand-toggle"
                               onClick={() =>
@@ -3474,6 +3852,27 @@ function App() {
           onToggle={() => toggleSection("playback")}
           meta={<span className="tag">{runnerSnapshot.status}</span>}
         >
+          <div
+            className={`simid-studio${simidStudioOpen ? " is-expanded" : ""}`}
+            data-simid-studio={simidStudioOpen ? "expanded" : "inline"}
+          >
+            {creativeSurfaces.simid.length > 0 ? (
+              <div className="simid-studio-bar">
+                <div>
+                  <strong>SIMID studio</strong>
+                  <p>
+                    Black stage. Transport and simulate sit under the video. Protocol log is on the right. Space plays, M mutes, arrows seek, S skips, Esc leaves.
+                  </p>
+                </div>
+                <button
+                  className="secondary"
+                  onClick={() => (simidStudioOpen ? setSimidStudioOpen(false) : openSimidStudio())}
+                  type="button"
+                >
+                  {simidStudioOpen ? "Exit studio" : "Expand studio"}
+                </button>
+              </div>
+            ) : null}
           <div className="metric-strip">
             <Metric label="Status" value={runnerSnapshot.status} accent={runnerSnapshot.status === "error" ? "error" : runnerSnapshot.status === "playing" ? "good" : "neutral"} />
             <Metric label="Media" value={runnerSnapshot.mediaSelection.selected?.mimeType ?? "none"} accent="neutral" />
@@ -3489,8 +3888,8 @@ function App() {
             <button className="secondary" onClick={() => void preparePlaybackRunner()} type="button">
               Prepare runner
             </button>
-            <button className="ghost" disabled={!runnerMediaUrl} onClick={() => void toggleRunnerMute()} type="button">
-              {runnerSnapshot.muted ? "Unmute" : "Mute"}
+            <button className="ghost" disabled={!stageMediaUrl} onClick={() => void toggleRunnerMute()} type="button">
+              {runnerAudioMuted ? "Unmute" : "Mute"}
             </button>
             <button
               className="ghost"
@@ -3500,7 +3899,15 @@ function App() {
             >
               Track click
             </button>
-            <button className="ghost" disabled={!runnerSnapshot.resolvedAd} onClick={() => void skipPlayback()} type="button">
+            <button
+              className="ghost"
+              disabled={!runnerSnapshot.resolvedAd}
+              onClick={() => {
+                simidCommandsRef.current?.skip();
+                void skipPlayback();
+              }}
+              type="button"
+            >
               Skip ad
             </button>
             <button
@@ -3541,23 +3948,63 @@ function App() {
 
           <div className="playback-shell">
             <div className="runner-stage">
-              {runnerMediaUrl ? (
+              {runnerMediaUrl || stageMediaUrl || creativeSurfaces.overlays.length > 0 ? (
                 <div className="runner-video-frame">
-                  <video
-                    ref={runnerVideoRef}
-                    className="runner-video"
-                    controls
-                    crossOrigin="anonymous"
-                    onEnded={() => void handleRunnerEnded()}
-                    onLoadedMetadata={() =>
-                      appendRunnerTimeline("media", "video:metadata", "Loaded media metadata into the playback runner.")
-                    }
-                    onPause={() => void handleRunnerPause()}
-                    onPlay={() => void handleRunnerPlay()}
-                    onTimeUpdate={() => void handleRunnerTimeUpdate()}
-                    onVolumeChange={() => void syncRunnerMuted()}
-                    src={runnerMediaUrl}
-                  />
+                  <OverlayStage
+                    actions={{
+                      skip: () => void skipPlayback(),
+                      stop: () => void handleRunnerEnded(),
+                      pause: () => runnerVideoRef.current?.pause(),
+                      play: () => void runnerVideoRef.current?.play()?.catch(() => undefined),
+                      seek: (seconds) => {
+                        const video = runnerVideoRef.current;
+                        if (!video) {
+                          return;
+                        }
+                        const duration = Number.isFinite(video.duration) ? video.duration : seconds;
+                        video.currentTime = Math.min(Math.max(0, seconds), duration);
+                      },
+                      setMuted: (muted) => {
+                        setRunnerAudioMuted(muted);
+                        if (runnerVideoRef.current) {
+                          runnerVideoRef.current.muted = muted;
+                        }
+                      },
+                      setVolume: (volume) => {
+                        if (runnerVideoRef.current) {
+                          runnerVideoRef.current.volume = volume;
+                        }
+                      },
+                    }}
+                    clickThroughUrl={runnerSnapshot.clickThroughUrl}
+                    commandsRef={simidCommandsRef}
+                    mediaUrl={stageMediaUrl}
+                    onSimidLog={(title, detail) => appendRunnerTimeline("simid", title, detail)}
+                    keepLogVisible={simidStudioOpen}
+                    studioExpanded={simidStudioOpen}
+                    surfaces={creativeSurfaces}
+                    videoRef={runnerVideoRef}
+                  >
+                    {stageMediaUrl ? (
+                      <video
+                        ref={runnerVideoRef}
+                        className="runner-video"
+                        controls={creativeSurfaces.simid.length === 0}
+                        crossOrigin="anonymous"
+                        muted={runnerAudioMuted}
+                        playsInline
+                        onEnded={() => void handleRunnerEnded()}
+                        onLoadedMetadata={() =>
+                          appendRunnerTimeline("media", "video:metadata", "Loaded media metadata into the playback runner.")
+                        }
+                        onPause={() => void handleRunnerPause()}
+                        onPlay={() => void handleRunnerPlay()}
+                        onTimeUpdate={() => void handleRunnerTimeUpdate()}
+                        onVolumeChange={() => void syncRunnerMuted()}
+                        src={stageMediaUrl}
+                      />
+                    ) : null}
+                  </OverlayStage>
                 </div>
               ) : (
                 <EmptyState
@@ -3626,6 +4073,7 @@ function App() {
                 </div>
               )}
             </div>
+          </div>
           </div>
         </Section>
 
@@ -3699,13 +4147,15 @@ function App() {
           onToggle={() => toggleSection("runtime")}
           meta={
             <span className="tag">
-              {runtimeInspection.omidCount} OMID · {runtimeInspection.vpaidCount} VPAID
+              {runtimeInspection.omidCount} OMID · {runtimeInspection.vpaidCount} VPAID · {creativeSurfaces.simid.length} SIMID
             </span>
           }
         >
           <div className="metric-strip">
             <Metric label="OMID resources" value={runtimeInspection.omidCount} accent={runtimeInspection.omidCount > 0 ? "good" : "neutral"} />
             <Metric label="VPAID markers" value={runtimeInspection.vpaidCount} accent={runtimeInspection.vpaidCount > 0 ? "warning" : "neutral"} />
+            <Metric label="SIMID" value={creativeSurfaces.simid.length} accent={creativeSurfaces.simid.length > 0 ? "good" : "neutral"} />
+            <Metric label="Overlays" value={creativeSurfaces.overlays.length} accent="neutral" />
             <Metric label="Companions" value={runtimeInspection.companions.length} accent="neutral" />
             <Metric label="Icons" value={runtimeInspection.icons.length} accent="neutral" />
           </div>
@@ -3721,6 +4171,8 @@ function App() {
               <span className="runtime-chip muted-chip">No apiFramework markers detected</span>
             )}
           </div>
+
+          <SimidInspectPanel onExpandStudio={openSimidStudio} surfaces={creativeSurfaces} />
 
           {runtimeInspection.verificationResources.length > 0 ? (
             <div className="table-surface runtime-table">
@@ -3760,12 +4212,12 @@ function App() {
                 <CreativePreviewCard key={icon.id} item={icon} label="Icon" />
               ))}
             </div>
-          ) : (
+          ) : creativeSurfaces.overlays.length === 0 ? (
             <EmptyState
               title="No companion or icon assets detected"
               body="Load a tag with creative resources to inspect companion rendering surfaces."
             />
-          )}
+          ) : null}
         </Section>
 
         <Section
@@ -3905,6 +4357,18 @@ function App() {
           on the vastlint GitHub repo. No GitHub account? Email{" "}
           <a href={feedbackMailto("VAST Tester feedback")}>{FEEDBACK_EMAIL}</a> instead. Every report is read by the
           person who maintains the tool.
+        </p>
+        <p>
+          Tags you paste or fetch on this tester may be stored (device IDs and IPs stripped) so
+          vastlint can improve its rules. Built-in samples are not sent. See{" "}
+          <a href="https://vastlint.org/privacy/" rel="noreferrer" target="_blank">
+            vastlint.org/privacy
+          </a>
+          {" · "}
+          <a href="https://vastlint.org/terms/" rel="noreferrer" target="_blank">
+            terms
+          </a>
+          . Pasting a tag licenses us to store it and probe URLs in it for development.
         </p>
       </footer>
     </div>

@@ -1,0 +1,9 @@
+IAB Tech Lab SIMID sample creatives
+https://github.com/InteractiveAdvertisingBureau/SIMID
+Copyright 2021 IAB Technology Laboratory, Inc
+Licensed under the Apache License, Version 2.0
+http://www.apache.org/licenses/LICENSE-2.0
+
+Vendored from examples/ for protocol interop in this tester.
+HTML script paths flattened so files load from this folder.
+Map sample omitted (Google Maps API key).

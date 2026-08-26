@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIMID sample: protocol explorer</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: transparent;
+    overflow: hidden;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+  }
+  #root {
+    position: absolute;
+    inset: 0;
+    display: none;
+  }
+  #root.live {
+    display: block;
+  }
+  .dock {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    bottom: 10px;
+    width: min(300px, 70%);
+    display: flex;
+    flex-direction: column;
+    background: rgba(10, 10, 10, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 6px;
+    color: #ffffff;
+    overflow: hidden;
+  }
+  .dock header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+  .dock header button {
+    border: 0;
+    background: transparent;
+    color: #ffffff;
+    font-size: 12px;
+    cursor: pointer;
+    opacity: 0.7;
+  }
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    padding: 8px;
+  }
+  .actions button {
+    padding: 6px 4px;
+    background: #1e1e1e;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 4px;
+    color: #ffffff;
+    font-size: 10.5px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .actions button:hover {
+    border-color: #ed3628;
+  }
+  .console {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 6px 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.16);
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 10px;
+    line-height: 1.5;
+  }
+  .console div {
+    overflow-wrap: anywhere;
+    opacity: 0.85;
+  }
+  .console .out {
+    color: #7fc4ff;
+  }
+  .console .in {
+    color: #9fe29f;
+  }
+  .reopen {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    display: none;
+    padding: 6px 10px;
+    background: rgba(10, 10, 10, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 4px;
+    color: #ffffff;
+    font-size: 11px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<div id="root">
+  <button class="reopen" id="reopen" type="button">SIMID explorer</button>
+  <div class="dock" id="dock">
+    <header>
+      <span>Creative requests</span>
+      <button id="collapse" title="Collapse the explorer dock" type="button">&#8722;</button>
+    </header>
+    <div class="actions" id="actions"></div>
+    <div class="console" id="console"></div>
+  </div>
+</div>
+<script src="simid-creative.js"></script>
+<script>
+  (function () {
+    var simid = new SimidCreative();
+    var root = document.getElementById('root');
+    var dock = document.getElementById('dock');
+    var reopen = document.getElementById('reopen');
+    var actionsEl = document.getElementById('actions');
+    var consoleEl = document.getElementById('console');
+
+    function logLine(className, text) {
+      var line = document.createElement('div');
+      line.className = className;
+      line.textContent = text;
+      consoleEl.appendChild(line);
+      while (consoleEl.childNodes.length > 80) {
+        consoleEl.removeChild(consoleEl.firstChild);
+      }
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    simid.onAnyMessage = function (direction, message) {
+      if (message.type === 'SIMID:Media:timeupdate') {
+        return;
+      }
+      var label = direction === 'out' ? '> ' : '< ';
+      var suffix = '';
+      if (message.type === 'resolve' || message.type === 'reject') {
+        suffix = ' #' + (message.args ? message.args.messageId : '?');
+      }
+      logLine(direction, label + message.type + suffix);
+    };
+
+    function report(promise, name) {
+      promise.then(function (value) {
+        logLine('in', '< ' + name + ' resolved ' + JSON.stringify(value || {}));
+      }).catch(function (value) {
+        logLine('in', '< ' + name + ' rejected ' + JSON.stringify(value || {}));
+      });
+    }
+
+    var actions = [
+      ['requestPause', function () { report(simid.requestPause(), 'requestPause'); }],
+      ['requestPlay', function () { report(simid.requestPlay(), 'requestPlay'); }],
+      ['getMediaState', function () { report(simid.getMediaState(), 'getMediaState'); }],
+      ['reportTracking', function () {
+        report(simid.reportTracking(['https://example.com/simid/explorer/ping']), 'reportTracking');
+      }],
+      ['clickThru', function () { report(simid.clickThru(0, 0, true), 'clickThru'); }],
+      ['volume 20%', function () { report(simid.requestChangeVolume(0.2, false), 'requestChangeVolume'); }],
+      ['mute', function () { report(simid.requestChangeVolume(0, true), 'requestChangeVolume'); }],
+      ['fullscreen', function () { report(simid.requestFullScreen(), 'requestFullScreen'); }],
+      ['exit fullscreen', function () { report(simid.requestExitFullScreen(), 'requestExitFullscreen'); }],
+      ['resize', function () {
+        report(simid.requestResize(
+          { x: 0, y: 0, width: 320, height: 180 },
+          { x: 0, y: 0, width: 640, height: 360 }
+        ), 'requestResize');
+      }],
+      ['change duration', function () { report(simid.requestChangeAdDuration(30), 'requestChangeAdDuration'); }],
+      ['log message', function () { simid.log('Hello from the protocol explorer creative.'); }],
+      ['requestSkip', function () { report(simid.requestSkip(), 'requestSkip'); }],
+      ['requestStop', function () { report(simid.requestStop(), 'requestStop'); }],
+      ['fatalError', function () { simid.fatalError(1104, 'Simulated creative technical error.'); }]
+    ];
+
+    actions.forEach(function (entry) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = entry[0];
+      button.addEventListener('click', entry[1]);
+      actionsEl.appendChild(button);
+    });
+
+    document.getElementById('collapse').addEventListener('click', function () {
+      dock.style.display = 'none';
+      reopen.style.display = 'block';
+    });
+    reopen.addEventListener('click', function () {
+      dock.style.display = 'flex';
+      reopen.style.display = 'none';
+    });
+
+    simid.onInit = function (environmentData, creativeData) {
+      logLine('in', '< init: env=' + JSON.stringify(environmentData || {}));
+      logLine('in', '< init: creative=' + JSON.stringify(creativeData || {}));
+    };
+
+    simid.onStart = function () {
+      root.classList.add('live');
+    };
+
+    simid.onAdSkipped = function () {
+      logLine('in', '< adSkipped: hiding creative UI');
+    };
+
+    simid.onAdStopped = function (code) {
+      logLine('in', '< adStopped code=' + code);
+    };
+
+    simid.onMediaEvent = function (name, args) {
+      if (name === 'timeupdate') {
+        return;
+      }
+      logLine('in', '< media:' + name + ' ' + JSON.stringify(args || {}));
+    };
+
+    simid.connect();
+  })();
+</script>
+</body>
+</html>

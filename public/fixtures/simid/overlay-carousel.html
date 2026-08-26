@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIMID sample: product carousel</title>
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; font-family: "Helvetica Neue", Arial, sans-serif; }
+  #root { position: absolute; inset: 0; display: none; }
+  #root.live { display: block; }
+  .rail {
+    position: absolute; left: 12px; right: 12px; bottom: 14px;
+    display: grid; grid-template-columns: 28px 1fr 28px 92px;
+    gap: 8px; align-items: center;
+    padding: 10px; background: rgba(12, 12, 12, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 8px; color: #fff;
+  }
+  .nav {
+    width: 28px; height: 28px; border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 50%; background: transparent; color: #fff; cursor: pointer;
+  }
+  .card { display: grid; grid-template-columns: 56px 1fr; gap: 10px; align-items: center; min-width: 0; }
+  .card img { width: 56px; height: 56px; object-fit: cover; border-radius: 6px; background: #222; }
+  .card strong, .card span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card strong { font-size: 13px; }
+  .card span { font-size: 11px; opacity: 0.72; margin-top: 2px; }
+  .shop {
+    padding: 8px 10px; border: 0; border-radius: 4px; background: #ed3628; color: #fff;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<div id="root">
+  <div class="rail">
+    <button class="nav" id="prev" type="button" aria-label="Previous product">&#8249;</button>
+    <div class="card">
+      <img alt="" id="shot">
+      <div>
+        <strong id="name"></strong>
+        <span id="price"></span>
+      </div>
+    </div>
+    <button class="nav" id="next" type="button" aria-label="Next product">&#8250;</button>
+    <button class="shop" id="shop" type="button">Shop</button>
+  </div>
+</div>
+<script src="simid-creative.js"></script>
+<script>
+  (function () {
+    var products = [
+      { id: "mug", name: "North Mug", price: "$24", img: "https://dummyimage.com/112x112/3d2b1f/ffffff.png&text=Mug" },
+      { id: "bottle", name: "Trail Bottle", price: "$32", img: "https://dummyimage.com/112x112/1f3d32/ffffff.png&text=Bottle" },
+      { id: "lamp", name: "Studio Lamp", price: "$58", img: "https://dummyimage.com/112x112/2b3340/ffffff.png&text=Lamp" },
+      { id: "pack", name: "Night Pack", price: "$84", img: "https://dummyimage.com/112x112/402b32/ffffff.png&text=Pack" }
+    ];
+    var index = 0;
+    var simid = new SimidCreative();
+
+    function render() {
+      var item = products[index];
+      document.getElementById("shot").src = item.img;
+      document.getElementById("name").textContent = item.name;
+      document.getElementById("price").textContent = item.price + " · " + String(index + 1) + " / " + String(products.length);
+    }
+
+    function move(delta) {
+      index = (index + delta + products.length) % products.length;
+      render();
+      simid.reportTracking(["https://example.com/simid/carousel/view/" + products[index].id]);
+    }
+
+    simid.onStart = function () {
+      document.getElementById("root").classList.add("live");
+      render();
+      simid.reportTracking(["https://example.com/simid/carousel/rendered"]);
+    };
+    simid.onAdSkipped = simid.onAdStopped = function () {
+      document.getElementById("root").classList.remove("live");
+    };
+
+    document.getElementById("prev").addEventListener("click", function () { move(-1); });
+    document.getElementById("next").addEventListener("click", function () { move(1); });
+    document.getElementById("shop").addEventListener("click", function (event) {
+      simid.reportTracking(["https://example.com/simid/carousel/shop/" + products[index].id]);
+      simid.clickThru(event.clientX, event.clientY, true);
+    });
+    simid.connect();
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.4">
+  <Ad id="vast44-pause-static-1">
+    <InLine>
+      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdServingId>vast44-pause-static-1</AdServingId>
+      <AdTitle>VAST 4.4 pause static</AdTitle>
+      <Error><![CDATA[https://example.com/error?code=%%ERRORCODE%%]]></Error>
+      <Impression><![CDATA[https://example.com/impression]]></Impression>
+      <Creatives>
+        <Creative id="vast44-pause-static-creative">
+          <UniversalAdId idRegistry="Ad-ID">PAUSE-STATIC-8465</UniversalAdId>
+          <NonLinearAds>
+            <NonLinear id="nl-pause-static" width="1920" height="1080" scalable="true" maintainAspectRatio="true">
+              <StaticResource creativeType="image/png"><![CDATA[https://dummyimage.com/1920x1080/111111/ffffff.png&text=Pause+Ad]]></StaticResource>
+              <NonLinearClickThrough><![CDATA[https://example.com/pause-click]]></NonLinearClickThrough>
+              <NonLinearClickTracking><![CDATA[https://example.com/pause-click-track]]></NonLinearClickTracking>
+            </NonLinear>
+            <Icons>
+              <Icon program="AdChoices" width="60" height="60" xPosition="right" yPosition="top">
+                <StaticResource creativeType="image/png"><![CDATA[https://dummyimage.com/60x60/e7e7e7/111111.png&text=i]]></StaticResource>
+                <IconClicks>
+                  <IconClickThrough><![CDATA[https://example.com/adchoices]]></IconClickThrough>
+                </IconClicks>
+              </Icon>
+            </Icons>
+            <TrackingEvents>
+              <Tracking event="creativeView"><![CDATA[https://example.com/creative-view]]></Tracking>
+              <Tracking event="overlayViewDuration"><![CDATA[https://example.com/overlay-view]]></Tracking>
+              <Tracking event="close"><![CDATA[https://example.com/close]]></Tracking>
+            </TrackingEvents>
+          </NonLinearAds>
+          <CreativeExtensions>
+            <CreativeExtension type="tl_qrcode">
+              <QrCodeScanUrl><![CDATA[https://example.com/qr]]></QrCodeScanUrl>
+              <QrCodeImageUrl><![CDATA[https://dummyimage.com/200x200/ffffff/111111.png&text=QR]]></QrCodeImageUrl>
+              <QrCodePosition xPosition="10%" yPosition="70%"/>
+              <QrCodeSize size="15%"/>
+            </CreativeExtension>
+          </CreativeExtensions>
+        </Creative>
+      </Creatives>
+      <Extensions>
+        <Extension type="plcmt" ext="adcom"><plcmt>5</plcmt></Extension>
+        <Extension type="pos" ext="adcom"><pos>7</pos></Extension>
+        <Extension type="playbackmethod" ext="adcom"><playbackmethod>9</playbackmethod></Extension>
+        <Extension type="attr" ext="adcom"><attr>21</attr></Extension>
+      </Extensions>
+    </InLine>
+  </Ad>
+</VAST>

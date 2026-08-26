@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.4">
+  <Ad id="vast44-overlay-simid-1">
+    <InLine>
+      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdServingId>vast44-overlay-simid-1</AdServingId>
+      <AdTitle>VAST 4.4 overlay SIMID</AdTitle>
+      <Error><![CDATA[https://example.com/error?code=%%ERRORCODE%%]]></Error>
+      <Impression><![CDATA[https://example.com/impression]]></Impression>
+      <Creatives>
+        <Creative id="vast44-overlay-simid-creative">
+          <UniversalAdId idRegistry="Ad-ID">OVERLAY-SIMID-8465</UniversalAdId>
+          <NonLinearAds>
+            <NonLinear id="nl-overlay-simid" width="1400" height="400" scalable="true" maintainAspectRatio="true" minSuggestedDuration="00:00:10">
+              <Duration>00:00:15</Duration>
+              <MediaFiles>
+                <MediaFile delivery="progressive" type="video/webm" width="1400" height="400" bitrate="800"><![CDATA[/fixtures/video/360p30.webm]]></MediaFile>
+                <MediaFile delivery="progressive" type="video/mp4" width="1400" height="400" bitrate="1200"><![CDATA[/fixtures/video/360p30.mp4]]></MediaFile>
+                <InteractiveCreativeFile type="text/html" apiFramework="SIMID"><![CDATA[/fixtures/simid/overlay-banner.html]]></InteractiveCreativeFile>
+              </MediaFiles>
+              <NonLinearClickThrough><![CDATA[https://example.com/overlay-click]]></NonLinearClickThrough>
+              <NonLinearClickTracking><![CDATA[https://example.com/overlay-click-track]]></NonLinearClickTracking>
+              <NonLinearCustomClick><![CDATA[https://example.com/overlay-custom-click]]></NonLinearCustomClick>
+            </NonLinear>
+            <Icons>
+              <Icon program="AdChoices" width="60" height="60" xPosition="right" yPosition="top">
+                <StaticResource creativeType="image/png"><![CDATA[https://dummyimage.com/60x60/e7e7e7/111111.png&text=i]]></StaticResource>
+                <IconClicks>
+                  <IconClickThrough><![CDATA[https://example.com/adchoices]]></IconClickThrough>
+                </IconClicks>
+              </Icon>
+            </Icons>
+            <TrackingEvents>
+              <Tracking event="creativeView"><![CDATA[https://example.com/creative-view]]></Tracking>
+              <Tracking event="overlayViewDuration"><![CDATA[https://example.com/overlay-view]]></Tracking>
+            </TrackingEvents>
+          </NonLinearAds>
+          <CreativeExtensions>
+            <CreativeExtension type="tl_qrcode">
+              <QrCodeScanUrl><![CDATA[https://example.com/qr]]></QrCodeScanUrl>
+              <QrCodeImageUrl><![CDATA[https://dummyimage.com/200x200/ffffff/111111.png&text=QR]]></QrCodeImageUrl>
+              <QrCodePosition xPosition="10%" yPosition="70%"/>
+              <QrCodeSize size="15%"/>
+            </CreativeExtension>
+          </CreativeExtensions>
+        </Creative>
+      </Creatives>
+      <Extensions>
+        <Extension type="plcmt" ext="adcom"><plcmt>7</plcmt></Extension>
+        <Extension type="pos" ext="adcom"><pos>14</pos></Extension>
+        <Extension type="playbackmethod" ext="adcom"><playbackmethod>2</playbackmethod></Extension>
+        <Extension type="attr" ext="adcom"><attr>23</attr></Extension>
+      </Extensions>
+    </InLine>
+  </Ad>
+</VAST>

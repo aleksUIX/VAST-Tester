@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIMID sample: overlay CTA banner</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: transparent;
+    overflow: hidden;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+  }
+  #root {
+    position: absolute;
+    inset: 0;
+    display: none;
+  }
+  #root.live {
+    display: block;
+  }
+  .banner {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: rgba(12, 12, 12, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 6px;
+    color: #ffffff;
+    transform: translateY(120%);
+    transition: transform 0.4s ease;
+  }
+  .banner.shown {
+    transform: translateY(0);
+  }
+  .copy {
+    flex: 1;
+    min-width: 0;
+  }
+  .copy strong {
+    display: block;
+    font-size: 14px;
+  }
+  .copy span {
+    display: block;
+    font-size: 11px;
+    opacity: 0.75;
+    margin-top: 2px;
+  }
+  .cta {
+    flex: none;
+    padding: 8px 16px;
+    background: #ed3628;
+    border: 0;
+    border-radius: 4px;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .cta:hover {
+    background: #ff4a3c;
+  }
+  .close {
+    flex: none;
+    width: 24px;
+    height: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    background: transparent;
+    color: #ffffff;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .clock {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    padding: 3px 8px;
+    background: rgba(12, 12, 12, 0.72);
+    border-radius: 3px;
+    color: #ffffff;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+</style>
+</head>
+<body>
+<div id="root">
+  <div class="clock" id="clock">ad</div>
+  <div class="banner" id="banner">
+    <div class="copy">
+      <strong>SIMID overlay banner</strong>
+      <span>Rendered by the creative iframe over the player's own video element.</span>
+    </div>
+    <button class="cta" id="cta" type="button">Learn more</button>
+    <button class="close" id="close" type="button" title="Dismiss the banner overlay">&#10005;</button>
+  </div>
+</div>
+<script src="simid-creative.js"></script>
+<script>
+  (function () {
+    var simid = new SimidCreative();
+    var root = document.getElementById('root');
+    var banner = document.getElementById('banner');
+    var clock = document.getElementById('clock');
+    var duration = null;
+    var bannerShown = false;
+    var interacted = false;
+
+    simid.onInit = function (environmentData) {
+      if (environmentData && typeof environmentData.skipoffset === 'number') {
+        simid.log('overlay-banner initialized, skipoffset=' + environmentData.skipoffset);
+      }
+    };
+
+    simid.onStart = function () {
+      root.classList.add('live');
+      simid.reportTracking(['https://example.com/simid/overlay/rendered']);
+      window.setTimeout(function () {
+        banner.classList.add('shown');
+        bannerShown = true;
+        simid.reportTracking(['https://example.com/simid/overlay/banner-shown']);
+      }, 400);
+    };
+
+    simid.onMediaEvent = function (name, args) {
+      if (name === 'durationchange' && typeof args.duration === 'number') {
+        duration = args.duration;
+      }
+      if (name === 'timeupdate' && typeof args.currentTime === 'number' && duration) {
+        var remaining = Math.max(0, Math.ceil(duration - args.currentTime));
+        clock.textContent = 'ad · ' + remaining + 's';
+      }
+      if (name === 'ended') {
+        banner.classList.remove('shown');
+      }
+    };
+
+    simid.onAdSkipped = function () {
+      root.classList.remove('live');
+    };
+
+    simid.onAdStopped = function () {
+      root.classList.remove('live');
+    };
+
+    document.getElementById('cta').addEventListener('click', function (event) {
+      if (!interacted) {
+        interacted = true;
+        simid.reportTracking(['https://example.com/simid/overlay/cta-click']);
+      }
+      simid.clickThru(event.clientX, event.clientY, true);
+    });
+
+    document.getElementById('close').addEventListener('click', function () {
+      banner.classList.remove('shown');
+      if (bannerShown) {
+        simid.reportTracking(['https://example.com/simid/overlay/banner-dismissed']);
+      }
+    });
+
+    simid.connect();
+  })();
+</script>
+</body>
+</html>

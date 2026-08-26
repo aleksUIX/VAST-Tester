@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.4">
+  <Ad id="vast44-squeezeback-1">
+    <InLine>
+      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdServingId>vast44-squeezeback-1</AdServingId>
+      <AdTitle>VAST 4.4 squeezeback</AdTitle>
+      <Error><![CDATA[https://example.com/error?code=%%ERRORCODE%%]]></Error>
+      <Impression><![CDATA[https://example.com/impression]]></Impression>
+      <Creatives>
+        <Creative id="vast44-squeezeback-creative">
+          <UniversalAdId idRegistry="Ad-ID">SQUEEZEBACK-8465</UniversalAdId>
+          <NonLinearAds>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://example.com/start]]></Tracking>
+              <Tracking event="firstQuartile"><![CDATA[https://example.com/first-quartile]]></Tracking>
+              <Tracking event="midpoint"><![CDATA[https://example.com/midpoint]]></Tracking>
+              <Tracking event="thirdQuartile"><![CDATA[https://example.com/third-quartile]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://example.com/complete]]></Tracking>
+            </TrackingEvents>
+            <NonLinear id="nl-squeezeback" width="1920" height="1080" scalable="true" maintainAspectRatio="true">
+              <Duration>00:00:10</Duration>
+              <StaticResource creativeType="image/png"><![CDATA[https://dummyimage.com/1920x1080/111111/ffffff.png&text=Squeezeback]]></StaticResource>
+              <NonLinearClickThrough><![CDATA[https://example.com/squeezeback-click]]></NonLinearClickThrough>
+            </NonLinear>
+          </NonLinearAds>
+        </Creative>
+      </Creatives>
+      <Extensions>
+        <Extension type="plcmt" ext="adcom"><plcmt>8</plcmt></Extension>
+        <Extension type="pos" ext="adcom"><pos>16</pos></Extension>
+        <Extension type="playbackmethod" ext="adcom"><playbackmethod>2</playbackmethod></Extension>
+        <Extension type="attr" ext="adcom"><attr>21</attr></Extension>
+      </Extensions>
+    </InLine>
+  </Ad>
+</VAST>

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIMID sample: shoppable CTAs</title>
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; font-family: "Helvetica Neue", Arial, sans-serif; }
+  #root { position: absolute; inset: 0; display: none; }
+  #root.live { display: block; }
+  .panel {
+    position: absolute; left: 12px; right: 12px; bottom: 14px;
+    padding: 10px 12px; background: rgba(12, 12, 12, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 8px; color: #fff;
+  }
+  .row { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; margin-bottom: 8px; }
+  .row strong { font-size: 13px; }
+  .row span { font-size: 11px; opacity: 0.7; }
+  .actions { display: flex; flex-wrap: wrap; gap: 6px; }
+  .actions button {
+    padding: 7px 10px; border: 1px solid rgba(255, 255, 255, 0.28); border-radius: 4px;
+    background: #1c1c1c; color: #fff; font-size: 11px; cursor: pointer;
+  }
+  .actions button.primary { background: #ed3628; border-color: #ed3628; }
+  .toast { margin-top: 8px; font-size: 11px; opacity: 0.8; min-height: 14px; }
+</style>
+</head>
+<body>
+<div id="root">
+  <div class="panel">
+    <div class="row">
+      <strong>North Mug</strong>
+      <span>Shoppable overlay · $24</span>
+    </div>
+    <div class="actions">
+      <button class="primary" data-cta="cart" type="button">Add to cart</button>
+      <button data-cta="email" type="button">Email</button>
+      <button data-cta="sms" type="button">SMS</button>
+      <button data-cta="app" type="button">Open app</button>
+      <button data-cta="call" type="button">Call</button>
+    </div>
+    <div class="toast" id="toast"></div>
+  </div>
+</div>
+<script src="simid-creative.js"></script>
+<script>
+  (function () {
+    var simid = new SimidCreative();
+    var toast = document.getElementById("toast");
+    var labels = {
+      cart: "Cart add reported. Playback pauses, then resumes.",
+      email: "Email intent reported. Player handles clickThru.",
+      sms: "SMS intent reported. Player handles clickThru.",
+      app: "App intent reported. Player handles clickThru.",
+      call: "Call intent reported. Player handles clickThru."
+    };
+
+    simid.onStart = function () {
+      document.getElementById("root").classList.add("live");
+      simid.reportTracking(["https://example.com/simid/shoppable/rendered"]);
+    };
+    simid.onAdSkipped = simid.onAdStopped = function () {
+      document.getElementById("root").classList.remove("live");
+    };
+
+    document.querySelector(".actions").addEventListener("click", function (event) {
+      var kind = event.target && event.target.getAttribute ? event.target.getAttribute("data-cta") : null;
+      if (!kind) {
+        return;
+      }
+      toast.textContent = labels[kind] || kind;
+      simid.reportTracking(["https://example.com/simid/shoppable/" + kind]);
+      if (kind === "cart") {
+        simid.requestPause().then(function () {
+          window.setTimeout(function () { simid.requestPlay(); }, 900);
+        });
+        return;
+      }
+      simid.clickThru(event.clientX, event.clientY, true);
+    });
+    simid.connect();
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIMID sample: in-scene hotspot</title>
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; font-family: "Helvetica Neue", Arial, sans-serif; }
+  #root { position: absolute; inset: 0; display: none; }
+  #root.live { display: block; }
+  .hotspot {
+    position: absolute; left: 58%; top: 28%;
+    min-width: 180px; padding: 10px 12px; background: rgba(12, 12, 12, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 8px; color: #fff;
+  }
+  .hotspot::before {
+    content: ""; position: absolute; left: -18px; top: 16px; width: 12px; height: 12px;
+    border: 2px solid #ed3628; border-radius: 50%; background: rgba(237, 54, 40, 0.35);
+  }
+  .kicker { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.65; }
+  strong { display: block; margin: 4px 0 8px; font-size: 13px; }
+  button { padding: 6px 10px; border: 0; border-radius: 4px; background: #ed3628; color: #fff; font-size: 11px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="root">
+  <div class="hotspot">
+    <div class="kicker">In-scene · CTV portfolio</div>
+    <strong>North Mug in frame</strong>
+    <button id="shop" type="button">Shop this</button>
+  </div>
+</div>
+<script src="simid-creative.js"></script>
+<script>
+  (function () {
+    var simid = new SimidCreative();
+    simid.onStart = function () {
+      document.getElementById("root").classList.add("live");
+      simid.reportTracking(["https://example.com/simid/inscene/rendered"]);
+    };
+    simid.onAdSkipped = simid.onAdStopped = function () {
+      document.getElementById("root").classList.remove("live");
+    };
+    document.getElementById("shop").addEventListener("click", function (event) {
+      simid.reportTracking(["https://example.com/simid/inscene/shop"]);
+      simid.clickThru(event.clientX, event.clientY, true);
+    });
+    simid.connect();
+  })();
+</script>
+</body>
+</html>

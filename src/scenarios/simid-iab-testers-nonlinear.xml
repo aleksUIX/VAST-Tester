@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.1">
+  <Ad id="simid-iab-testers-nonlinear-1" sequence="1">
+    <InLine>
+      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdServingId>simid-iab-testers-nonlinear-1</AdServingId>
+      <AdTitle>IAB SIMID testers nonlinear</AdTitle>
+      <Error><![CDATA[https://example.com/error?code=%%ERRORCODE%%]]></Error>
+      <Impression><![CDATA[https://example.com/impression]]></Impression>
+      <Creatives>
+        <Creative id="simid-iab-testers-nonlinear-creative">
+          <UniversalAdId idRegistry="Ad-ID">IAB-SIMID-TESTERS-NL-8465</UniversalAdId>
+          <NonLinearAds>
+            <NonLinear id="nl-iab-testers" width="640" height="150" scalable="true" maintainAspectRatio="true" apiFramework="SIMID" minSuggestedDuration="00:00:10">
+              <IFrameResource><![CDATA[/fixtures/simid/iab/testers_nonlinear.html]]></IFrameResource>
+              <NonLinearClickThrough><![CDATA[https://example.com/clickthrough]]></NonLinearClickThrough>
+            </NonLinear>
+          </NonLinearAds>
+        </Creative>
+      </Creatives>
+    </InLine>
+  </Ad>
+</VAST>

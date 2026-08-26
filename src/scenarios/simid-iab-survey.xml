@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.1">
+  <Ad id="simid-iab-survey-1" sequence="1">
+    <InLine>
+      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdServingId>simid-iab-survey-1</AdServingId>
+      <AdTitle>IAB SIMID survey</AdTitle>
+      <Error><![CDATA[https://example.com/error?code=%%ERRORCODE%%]]></Error>
+      <Impression><![CDATA[https://example.com/impression]]></Impression>
+      <Creatives>
+        <Creative id="simid-iab-survey-1-creative">
+          <UniversalAdId idRegistry="Ad-ID">IAB-SIMID-SURVEY-8465</UniversalAdId>
+          <Linear skipoffset="00:00:00">
+            <Duration>00:00:20</Duration>
+            <AdParameters><![CDATA[[{"question":"Would you like a survey?","answers":["Yes","No","Not sure"]},{"question":"How often do you watch video ads?","answers":["Often","Sometimes","Never"]},{"question":"Was this survey useful?","answers":["Yes","No","Skip"]}]]]></AdParameters>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://example.com/start]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://example.com/complete]]></Tracking>
+              <Tracking event="skip"><![CDATA[https://example.com/skip]]></Tracking>
+            </TrackingEvents>
+            <VideoClicks>
+              <ClickThrough><![CDATA[https://example.com/clickthrough]]></ClickThrough>
+            </VideoClicks>
+            <MediaFiles>
+              <MediaFile delivery="progressive" type="video/webm" width="640" height="360" bitrate="800"><![CDATA[/fixtures/video/360p30.webm]]></MediaFile>
+              <MediaFile delivery="progressive" type="video/mp4" width="640" height="360" bitrate="1200"><![CDATA[/fixtures/video/360p30.mp4]]></MediaFile>
+              <InteractiveCreativeFile type="text/html" apiFramework="SIMID" variableDuration="true"><![CDATA[/fixtures/simid/iab/survey.html]]></InteractiveCreativeFile>
+            </MediaFiles>
+          </Linear>
+        </Creative>
+      </Creatives>
+    </InLine>
+  </Ad>
+</VAST>

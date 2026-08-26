@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIMID sample: interactive poll</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: transparent;
+    overflow: hidden;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+  }
+  #root {
+    position: absolute;
+    inset: 0;
+    display: none;
+  }
+  #root.live {
+    display: block;
+  }
+  .invite {
+    position: absolute;
+    right: 12px;
+    bottom: 14px;
+    padding: 9px 14px;
+    background: rgba(12, 12, 12, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 5px;
+    color: #ffffff;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .invite:hover {
+    background: rgba(30, 30, 30, 0.9);
+  }
+  .panel {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(8, 8, 8, 0.78);
+  }
+  .panel.open {
+    display: flex;
+  }
+  .card {
+    width: min(420px, 86%);
+    padding: 22px;
+    background: #141414;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: #ffffff;
+    text-align: center;
+  }
+  .card h1 {
+    margin: 0 0 6px;
+    font-size: 17px;
+  }
+  .card p {
+    margin: 0 0 16px;
+    font-size: 12px;
+    opacity: 0.7;
+  }
+  .options {
+    display: grid;
+    gap: 8px;
+  }
+  .options button {
+    padding: 10px 12px;
+    background: #1f1f1f;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 5px;
+    color: #ffffff;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .options button:hover {
+    border-color: #ed3628;
+  }
+  .thanks {
+    display: none;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+<div id="root">
+  <button class="invite" id="invite" type="button">Take a 1-question poll &#8599;</button>
+  <div class="panel" id="panel">
+    <div class="card">
+      <div id="question">
+        <h1>Which ad format do you QA most often?</h1>
+        <p>The ad is paused while the poll is open (SIMID:Creative:requestPause). Answering resumes playback.</p>
+        <div class="options">
+          <button data-answer="ctv" type="button">CTV / OTT video</button>
+          <button data-answer="web" type="button">Desktop and mobile web</button>
+          <button data-answer="audio" type="button">Audio</button>
+        </div>
+      </div>
+      <div class="thanks" id="thanks">Thanks. Resuming the ad now.</div>
+    </div>
+  </div>
+</div>
+<script src="simid-creative.js"></script>
+<script>
+  (function () {
+    var simid = new SimidCreative();
+    var root = document.getElementById('root');
+    var invite = document.getElementById('invite');
+    var panel = document.getElementById('panel');
+    var question = document.getElementById('question');
+    var thanks = document.getElementById('thanks');
+    var answered = false;
+
+    simid.onStart = function () {
+      root.classList.add('live');
+      simid.reportTracking(['https://example.com/simid/poll/rendered']);
+    };
+
+    simid.onAdSkipped = function () {
+      root.classList.remove('live');
+    };
+
+    simid.onAdStopped = function () {
+      root.classList.remove('live');
+    };
+
+    invite.addEventListener('click', function () {
+      panel.classList.add('open');
+      invite.style.display = 'none';
+      simid.reportTracking(['https://example.com/simid/poll/opened']);
+      simid.requestPause().then(function () {
+        simid.log('Player honored requestPause while the poll is open.');
+      }).catch(function () {
+        simid.log('Player rejected requestPause; poll stays open over playing media.');
+      });
+    });
+
+    panel.addEventListener('click', function (event) {
+      var answer = event.target && event.target.getAttribute ? event.target.getAttribute('data-answer') : null;
+      if (!answer || answered) {
+        return;
+      }
+      answered = true;
+      simid.reportTracking(['https://example.com/simid/poll/answer/' + answer]);
+      question.style.display = 'none';
+      thanks.style.display = 'block';
+      window.setTimeout(function () {
+        panel.classList.remove('open');
+        simid.requestPlay().then(function () {
+          simid.log('Player resumed playback after the poll.');
+        });
+      }, 1200);
+    });
+
+    simid.connect();
+  })();
+</script>
+</body>
+</html>
