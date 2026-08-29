@@ -39,7 +39,7 @@
       document.getElementById("root").classList.add("live");
       simid.reportTracking(["https://example.com/simid/pause/rendered"]);
     };
-    simid.onAdSkipped = simid.onAdStopped = function () {
+    simid.onAdSkipped = function () {
       document.getElementById("root").classList.remove("live");
     };
     document.getElementById("shop").addEventListener("click", function (event) {

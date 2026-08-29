@@ -90,10 +90,26 @@
     font-size: 11px;
     font-variant-numeric: tabular-nums;
   }
+  .pause {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    padding: 3px 8px;
+    background: rgba(12, 12, 12, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 3px;
+    color: #ffffff;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .pause:hover {
+    border-color: #ed3628;
+  }
 </style>
 </head>
 <body>
 <div id="root">
+  <button class="pause" id="pause" type="button">Pause ad</button>
   <div class="clock" id="clock">ad</div>
   <div class="banner" id="banner">
     <div class="copy">
@@ -111,9 +127,16 @@
     var root = document.getElementById('root');
     var banner = document.getElementById('banner');
     var clock = document.getElementById('clock');
+    var pauseBtn = document.getElementById('pause');
     var duration = null;
     var bannerShown = false;
     var interacted = false;
+    var paused = false;
+
+    function setPaused(next) {
+      paused = next;
+      pauseBtn.textContent = paused ? 'Resume ad' : 'Pause ad';
+    }
 
     simid.onInit = function (environmentData) {
       if (environmentData && typeof environmentData.skipoffset === 'number') {
@@ -132,6 +155,12 @@
     };
 
     simid.onMediaEvent = function (name, args) {
+      if (name === 'pause') {
+        setPaused(true);
+      }
+      if (name === 'play' || name === 'playing') {
+        setPaused(false);
+      }
       if (name === 'durationchange' && typeof args.duration === 'number') {
         duration = args.duration;
       }
@@ -139,18 +168,21 @@
         var remaining = Math.max(0, Math.ceil(duration - args.currentTime));
         clock.textContent = 'ad · ' + remaining + 's';
       }
-      if (name === 'ended') {
-        banner.classList.remove('shown');
-      }
     };
 
     simid.onAdSkipped = function () {
       root.classList.remove('live');
     };
 
-    simid.onAdStopped = function () {
-      root.classList.remove('live');
-    };
+    pauseBtn.addEventListener('click', function () {
+      if (paused) {
+        setPaused(false);
+        simid.requestPlay();
+      } else {
+        setPaused(true);
+        simid.requestPause();
+      }
+    });
 
     document.getElementById('cta').addEventListener('click', function (event) {
       if (!interacted) {

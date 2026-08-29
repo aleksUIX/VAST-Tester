@@ -40,7 +40,7 @@
       document.getElementById("root").classList.add("live");
       simid.reportTracking(["https://example.com/simid/menu/rendered"]);
     };
-    simid.onAdSkipped = simid.onAdStopped = function () {
+    simid.onAdSkipped = function () {
       document.getElementById("root").classList.remove("live");
     };
     document.querySelector(".rail").addEventListener("click", function (event) {

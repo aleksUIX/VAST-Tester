@@ -240,6 +240,10 @@ export class SimidPlayer {
     }
   }
 
+  get advertisedDuration(): number | null {
+    return this.durationOverride;
+  }
+
   bumpDuration(deltaSec: number) {
     const current = Number(this.mediaState().duration);
     const next = Math.max(1, (Number.isFinite(current) && current > 0 ? current : 20) + deltaSec);
@@ -259,13 +263,16 @@ export class SimidPlayer {
   }
 
   collapseCreative() {
+    const stage = this.host.getStageSize();
     const width = Number(this.surface.width);
     const height = Number(this.surface.height);
+    const overlayHeight = Number.isFinite(height) && height > 0 ? height : 90;
+    const overlayWidth = Number.isFinite(width) && width > 0 ? Math.min(width, stage.width) : stage.width;
     this.host.setCreativeSize({
       x: 0,
-      y: 0,
-      width: Number.isFinite(width) && width > 0 ? width : 640,
-      height: Number.isFinite(height) && height > 0 ? height : 90,
+      y: Math.max(0, stage.height - overlayHeight),
+      width: overlayWidth,
+      height: overlayHeight,
     });
     this.sendResize();
   }
@@ -377,13 +384,16 @@ export class SimidPlayer {
         this.sendResize();
         break;
       case "SIMID:Creative:collapseNonlinear": {
+        const stage = this.host.getStageSize();
         const width = Number(this.surface.width);
         const height = Number(this.surface.height);
+        const overlayHeight = Number.isFinite(height) && height > 0 ? height : 90;
+        const overlayWidth = Number.isFinite(width) && width > 0 ? Math.min(width, stage.width) : stage.width;
         this.host.setCreativeSize({
           x: 0,
-          y: 0,
-          width: Number.isFinite(width) && width > 0 ? width : 640,
-          height: Number.isFinite(height) && height > 0 ? height : 90,
+          y: Math.max(0, stage.height - overlayHeight),
+          width: overlayWidth,
+          height: overlayHeight,
         });
         this.resolve(message);
         this.sendResize();

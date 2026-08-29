@@ -153,7 +153,7 @@ function SimidHealthDeck({
               <button
                 className="qa-copy-value"
                 onClick={() => onCopy(fact.value, `${fact.label} copied`)}
-                title="Copy value"
+                title={fact.value}
                 type="button"
               >
                 {fact.value}
@@ -193,7 +193,7 @@ function SimidHealthDeck({
           ))}
         </ul>
       ) : null}
-      <details className="qa-simid-coverage-wrap">
+      <details className="qa-simid-more">
         <summary>Coverage</summary>
         <ul className="qa-simid-coverage">
           {report.coverage.map((item) => (
@@ -203,29 +203,32 @@ function SimidHealthDeck({
           ))}
         </ul>
       </details>
-      <form
-        className="qa-simid-swap"
-        onSubmit={(event) => {
-          event.preventDefault();
-          onApplyUrl();
-        }}
-      >
-        <input
-          aria-label="SIMID creative URL"
-          onChange={(event) => onUrlDraft(event.target.value)}
-          placeholder="Paste a live SIMID HTML URL"
-          type="url"
-          value={urlDraft}
-        />
-        <button className="ghost" type="submit">
-          Load URL
-        </button>
-        {urlSwapped ? (
-          <button className="ghost" onClick={onResetUrl} type="button">
-            Use VAST URL
+      <details className="qa-simid-more">
+        <summary>Load another creative</summary>
+        <form
+          className="qa-simid-swap"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onApplyUrl();
+          }}
+        >
+          <input
+            aria-label="SIMID creative URL"
+            onChange={(event) => onUrlDraft(event.target.value)}
+            placeholder="Paste a live SIMID HTML URL"
+            type="url"
+            value={urlDraft}
+          />
+          <button className="ghost" type="submit">
+            Load URL
           </button>
-        ) : null}
-      </form>
+          {urlSwapped ? (
+            <button className="ghost" onClick={onResetUrl} type="button">
+              Use VAST URL
+            </button>
+          ) : null}
+        </form>
+      </details>
     </section>
   );
 }
@@ -386,6 +389,10 @@ export function OverlayStage({
           }
         },
         setCreativeSize: (size) => {
+          if (!size || size.width < 8 || size.height < 8) {
+            setCreativeSize(null);
+            return;
+          }
           setCreativeSize(size);
         },
       },
@@ -465,7 +472,7 @@ export function OverlayStage({
     const syncClock = () => {
       setClock({
         currentTime: video.currentTime,
-        duration: Number.isFinite(video.duration) ? video.duration : 0,
+        duration: player.advertisedDuration ?? (Number.isFinite(video.duration) ? video.duration : 0),
         paused: video.paused,
         muted: video.muted,
         volume: video.volume,
@@ -486,6 +493,11 @@ export function OverlayStage({
     const onEnded = () => {
       syncClock();
       player.sendMedia("ended", {});
+      const advertised = player.advertisedDuration;
+      const mediaDuration = Number.isFinite(video.duration) ? video.duration : 0;
+      if (advertised != null && advertised > mediaDuration + 0.2) {
+        return;
+      }
       player.stop();
     };
     const onVolume = () => {
@@ -673,51 +685,56 @@ export function OverlayStage({
             <button className="ghost" onClick={() => actions.setMuted(!clock.muted)} type="button">
               {clock.muted ? "Unmute" : "Mute"}
             </button>
-            <input
-              aria-label="Volume"
-              className="qa-simid-volume"
-              max={1}
-              min={0}
-              onChange={(event) => {
-                const volume = Number(event.target.value);
-                actions.setVolume(volume);
-                if (volume > 0) {
-                  actions.setMuted(false);
-                }
-              }}
-              step="0.05"
-              type="range"
-              value={clock.muted ? 0 : clock.volume}
-            />
-            <button
-              className="ghost"
-              onClick={() => {
-                if (step !== "started") {
-                  return;
-                }
-                playerRef.current?.skip();
-                actions.skip();
-              }}
-              type="button"
-            >
-              Skip creative
-            </button>
-            <button
-              className="ghost"
-              onClick={() => {
-                if (step !== "started") {
-                  return;
-                }
-                playerRef.current?.stop();
-                actions.stop();
-              }}
-              type="button"
-            >
-              Stop creative
-            </button>
-            <button className="ghost" onClick={() => setSessionKey((value) => value + 1)} type="button">
-              Reload creative
-            </button>
+            <details className="qa-simid-more">
+              <summary>More</summary>
+              <div className="qa-simid-more-body">
+                <input
+                  aria-label="Volume"
+                  className="qa-simid-volume"
+                  max={1}
+                  min={0}
+                  onChange={(event) => {
+                    const volume = Number(event.target.value);
+                    actions.setVolume(volume);
+                    if (volume > 0) {
+                      actions.setMuted(false);
+                    }
+                  }}
+                  step="0.05"
+                  type="range"
+                  value={clock.muted ? 0 : clock.volume}
+                />
+                <button
+                  className="ghost"
+                  onClick={() => {
+                    if (step !== "started") {
+                      return;
+                    }
+                    playerRef.current?.skip();
+                    actions.skip();
+                  }}
+                  type="button"
+                >
+                  Skip creative
+                </button>
+                <button
+                  className="ghost"
+                  onClick={() => {
+                    if (step !== "started") {
+                      return;
+                    }
+                    playerRef.current?.stop();
+                    actions.stop();
+                  }}
+                  type="button"
+                >
+                  Stop creative
+                </button>
+                <button className="ghost" onClick={() => setSessionKey((value) => value + 1)} type="button">
+                  Reload creative
+                </button>
+              </div>
+            </details>
           </div>
           <div className="qa-simid-transport-row">
             <input
@@ -734,16 +751,31 @@ export function OverlayStage({
         </div>
       ) : null}
       {simid ? (
-        <div className="qa-simid-protocol" data-simid-protocol="true">
-          <span className="qa-simid-kicker">Simulate</span>
-          <label className="qa-simid-check">
-            <input
-              checked={autoStart}
-              onChange={(event) => setAutoStart(event.target.checked)}
-              type="checkbox"
-            />
-            Auto-start
-          </label>
+        <details
+          className="qa-simid-protocol"
+          data-simid-protocol="true"
+          {...(studioExpanded ? { open: true } : {})}
+        >
+          <summary>
+            <span className="qa-simid-kicker">Simulate</span>
+            <label
+              className="qa-simid-check"
+              onClick={(event) => event.stopPropagation()}
+              onKeyDown={(event) => event.stopPropagation()}
+            >
+              <input
+                checked={autoStart}
+                onChange={(event) => setAutoStart(event.target.checked)}
+                type="checkbox"
+              />
+              Auto-start
+            </label>
+            <span className="qa-simid-skipoffset">
+              skipoffset {playerRef.current?.skipOffsetSec ?? 5}s
+              {step === "started" && skipLeft > 0 ? ` · ${skipLeft.toFixed(0)}s left` : step === "started" ? " · skip open" : ""}
+            </span>
+          </summary>
+          <div className="qa-simid-protocol-body">
           <button className="ghost" disabled={step !== "ready"} onClick={() => playerRef.current?.startCreative()} type="button">
             Start creative
           </button>
@@ -801,16 +833,13 @@ export function OverlayStage({
           >
             Fatal error
           </button>
-          <span className="qa-simid-skipoffset">
-            skipoffset {playerRef.current?.skipOffsetSec ?? 5}s
-            {step === "started" && skipLeft > 0 ? ` · ${skipLeft.toFixed(0)}s left` : step === "started" ? " · skip open" : ""}
-          </span>
           {clickThroughUrlOpen ? (
             <a className="qa-simid-clickthrough" href={clickThroughUrlOpen} rel="noreferrer noopener" target="_blank">
               Open clickthrough
             </a>
           ) : null}
-        </div>
+          </div>
+        </details>
       ) : null}
       {simid && health ? (
         <div className="qa-simid-side">

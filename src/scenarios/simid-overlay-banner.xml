@@ -24,8 +24,8 @@
               <ClickThrough><![CDATA[https://example.com/clickthrough]]></ClickThrough>
             </VideoClicks>
             <MediaFiles>
-              <MediaFile delivery="progressive" type="video/webm" width="640" height="360" bitrate="800"><![CDATA[/fixtures/video/360p30.webm]]></MediaFile>
-              <MediaFile delivery="progressive" type="video/mp4" width="640" height="360" bitrate="1200"><![CDATA[/fixtures/video/360p30.mp4]]></MediaFile>
+              <MediaFile delivery="progressive" type="video/webm" width="640" height="360" bitrate="800"><![CDATA[/fixtures/video/bbb-360p.webm]]></MediaFile>
+              <MediaFile delivery="progressive" type="video/mp4" width="640" height="360" bitrate="1200"><![CDATA[/fixtures/video/bbb-360p.mp4]]></MediaFile>
               <InteractiveCreativeFile type="text/html" apiFramework="SIMID"><![CDATA[/fixtures/simid/overlay-banner.html]]></InteractiveCreativeFile>
             </MediaFiles>
           </Linear>

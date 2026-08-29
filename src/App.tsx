@@ -1823,23 +1823,7 @@ function buildPlayableMediaUrl(mediaUrl: string | null) {
     return null;
   }
 
-  const origin = typeof globalThis.location === "object" ? globalThis.location.origin : "http://localhost:5175";
-
-  try {
-    const parsed = new URL(mediaUrl);
-    const pathname = parsed.pathname.toLowerCase();
-    if (parsed.hostname === "example.com" && pathname.endsWith("/fixtures/video/360p30.webm")) {
-      return buildLocalAssetUrl("fixtures/video/360p30.webm");
-    }
-
-    if (parsed.hostname === "example.com" && pathname.endsWith("/fixtures/video/360p30.mp4")) {
-      return buildLocalAssetUrl("fixtures/video/360p30.mp4");
-    }
-  } catch {
-    return mediaUrl;
-  }
-
-  return mediaUrl;
+  return resolveQaAssetUrl(mediaUrl) ?? mediaUrl;
 }
 
 function collectApiFrameworks(xml: string | null): string[] {
@@ -3855,22 +3839,26 @@ function App() {
           <div
             className={`simid-studio${simidStudioOpen ? " is-expanded" : ""}`}
             data-simid-studio={simidStudioOpen ? "expanded" : "inline"}
+            data-simid-present={creativeSurfaces.simid.length > 0 ? "true" : "false"}
           >
             {creativeSurfaces.simid.length > 0 ? (
               <div className="simid-studio-bar">
                 <div>
                   <strong>SIMID studio</strong>
-                  <p>
-                    Black stage. Transport and simulate sit under the video. Protocol log is on the right. Space plays, M mutes, arrows seek, S skips, Esc leaves.
-                  </p>
+                  <p>Black stage. Media under the video. Protocol log beside the stage.</p>
                 </div>
-                <button
-                  className="secondary"
-                  onClick={() => (simidStudioOpen ? setSimidStudioOpen(false) : openSimidStudio())}
-                  type="button"
-                >
-                  {simidStudioOpen ? "Exit studio" : "Expand studio"}
-                </button>
+                <div className="simid-studio-bar-actions">
+                  <button className="secondary" onClick={() => void preparePlaybackRunner()} type="button">
+                    Prepare runner
+                  </button>
+                  <button
+                    className="secondary"
+                    onClick={() => (simidStudioOpen ? setSimidStudioOpen(false) : openSimidStudio())}
+                    type="button"
+                  >
+                    {simidStudioOpen ? "Exit studio" : "Expand studio"}
+                  </button>
+                </div>
               </div>
             ) : null}
           <div className="metric-strip">

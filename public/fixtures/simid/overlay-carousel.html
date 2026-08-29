@@ -75,7 +75,7 @@
       render();
       simid.reportTracking(["https://example.com/simid/carousel/rendered"]);
     };
-    simid.onAdSkipped = simid.onAdStopped = function () {
+    simid.onAdSkipped = function () {
       document.getElementById("root").classList.remove("live");
     };
 
