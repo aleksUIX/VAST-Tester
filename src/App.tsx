@@ -42,6 +42,7 @@ import viewableImpressionXml from "./scenarios/viewable-impression.xml?raw";
 import wrapperSignalsXml from "./scenarios/wrapper-signals.xml?raw";
 
 import { OverlayStage, SimidInspectPanel, type SimidCommands } from "./qa/QaStudio";
+import { SimidStudioGuide } from "./qa/SimidStudioGuide";
 import { parseCreativeSurfaces } from "./qa/parseCreativeSurfaces";
 import { resolveQaAssetUrl } from "./qa/resolveQaAssetUrl";
 import type { FixResult, Issue, ValidateOptions } from "vastlint";
@@ -3215,6 +3216,7 @@ function App() {
       </div>
 
       <main className="stack">
+        <SimidStudioGuide />
         <section className="panel panel-static source-panel" data-section="source" data-open="true">
           <div className="panel-head static">
             <h2>Source</h2>
