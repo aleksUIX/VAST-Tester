@@ -8,8 +8,8 @@ function guideUrl(file: string) {
 export function SimidStudioGuide() {
   const [open, setOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const poster = guideUrl("simid-studio.jpg");
-  const src = guideUrl("simid-studio.mp4");
+  const poster = guideUrl("simid-studio-desktop.jpg");
+  const src = guideUrl("simid-studio-desktop.mp4");
 
   useEffect(() => {
     const video = videoRef.current;
@@ -30,11 +30,11 @@ export function SimidStudioGuide() {
         type="button"
       >
         <span className="simid-guide-thumb-wrap">
-          <img alt="" className="simid-guide-thumb" height={80} src={poster} width={64} />
+          <img alt="" className="simid-guide-thumb" height={72} src={poster} width={128} />
         </span>
         <span className="simid-guide-copy">
           <strong>Learn more about SIMID studio</strong>
-          <span>72s walkthrough of a live session</span>
+          <span>70s walkthrough of a live session</span>
         </span>
         <span className="simid-guide-action">{open ? "Close" : "Watch"}</span>
       </button>

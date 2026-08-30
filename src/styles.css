@@ -2191,8 +2191,8 @@ body.simid-studio-lock {
 
 .simid-guide-thumb {
   display: block;
-  width: 64px;
-  height: 80px;
+  width: 128px;
+  height: 72px;
   object-fit: cover;
   background: #111111;
   border: 1px solid var(--line);
@@ -2248,10 +2248,10 @@ body.simid-studio-lock {
 
 .simid-guide-player video {
   display: block;
-  width: min(100%, 360px);
+  width: 100%;
   height: auto;
-  aspect-ratio: 4 / 5;
-  margin: 12px auto 0;
+  aspect-ratio: 16 / 9;
+  margin: 12px 0 0;
   background: #000000;
 }
 
