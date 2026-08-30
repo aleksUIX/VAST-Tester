@@ -491,13 +491,16 @@ export function OverlayStage({
       player.sendMedia("pause", { currentTime: video.currentTime });
     };
     const onEnded = () => {
-      syncClock();
-      player.sendMedia("ended", {});
       const advertised = player.advertisedDuration;
       const mediaDuration = Number.isFinite(video.duration) ? video.duration : 0;
       if (advertised != null && advertised > mediaDuration + 0.2) {
+        video.loop = true;
+        video.currentTime = 0;
+        void video.play().catch(() => undefined);
         return;
       }
+      syncClock();
+      player.sendMedia("ended", {});
       player.stop();
     };
     const onVolume = () => {

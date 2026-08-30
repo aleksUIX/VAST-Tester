@@ -248,6 +248,10 @@ export class SimidPlayer {
     const current = Number(this.mediaState().duration);
     const next = Math.max(1, (Number.isFinite(current) && current > 0 ? current : 20) + deltaSec);
     this.durationOverride = next;
+    const video = this.host.getVideo();
+    if (video) {
+      video.loop = true;
+    }
     this.sendMedia("durationchange", this.mediaState());
   }
 
