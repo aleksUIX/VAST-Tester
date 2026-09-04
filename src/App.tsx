@@ -255,7 +255,7 @@ const EDITOR_GEOMETRY = {
   "--editor-padding-top": `${String(EDITOR_VERTICAL_PADDING)}px`,
 } as CSSProperties;
 const RULE_DOCS_BASE = "https://vastlint.org/docs/rules";
-const FEEDBACK_EMAIL = "alex@vastlint.org";
+const FEEDBACK_EMAIL = "aleks@vastlint.org";
 const DEFAULT_APP_ORIGIN = "http://localhost:5175";
 const SCENARIO_FALLBACK_ASSET_ORIGIN = "https://iab-tech-lab-vast-tester.vastlint.org";
 const APP_BASE_PATH = import.meta.env.BASE_URL ?? "/";
@@ -1988,7 +1988,10 @@ function countBySeverity(issues: readonly Issue[]) {
 }
 
 function ruleDocsUrl(ruleId: string) {
-  return `${RULE_DOCS_BASE}/${encodeURIComponent(ruleId)}`;
+  const encoded = encodeURIComponent(ruleId);
+  if (ruleId.startsWith("SIMID-")) return `https://vastlint.org/docs/simid-rules/${encoded}/`;
+  if (ruleId.startsWith("VPAID-")) return `https://vastlint.org/docs/vpaid-rules/${encoded}/`;
+  return `https://vastlint.org/docs/rules/${encoded}/`;
 }
 
 function feedbackMailto(subject: string, bodyLines: (string | null)[] = []) {
@@ -3619,7 +3622,16 @@ function App() {
           ) : null}
 
           {displayedIssues.length === 0 ? (
-            <EmptyState title="No findings for the current run" body="Run validate or resolve to populate rule output." />
+            <EmptyState
+              title={isRunning ? "No findings for the current run" : "No rule findings for this lens"}
+              body={
+                isRunning
+                  ? "Run validate or resolve to populate rule output."
+                  : activeComplianceVerdict?.status === "fail"
+                    ? "This lens failed for the reasons listed above, not a spec rule ID."
+                    : "No spec rule IDs matched this lens."
+              }
+            />
           ) : (
             <div className="table-surface">
               <div className="table-head findings-columns">

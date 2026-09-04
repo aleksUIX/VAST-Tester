@@ -5,6 +5,7 @@
       <AdSystem version="1.0">vastlint-demo</AdSystem>
       <AdTitle>vastlint sample inline</AdTitle>
       <Impression><![CDATA[https://example.com/impression]]></Impression>
+      <Error><![CDATA[https://example.com/error?code=%%ERRORCODE%%]]></Error>
       <Creatives>
         <Creative id="creative-1">
           <UniversalAdId idRegistry="Ad-ID">8465</UniversalAdId>
