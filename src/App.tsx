@@ -3158,10 +3158,12 @@ function App() {
     <div className="shell">
       <header className="masthead">
         <div className="masthead-copy">
-          <h1>Next-Gen VAST Tester</h1>
+          <h1>IAB-style VAST tester</h1>
           <p className="lede">
-            An independent, vastlint-powered rebuild of the legacy IAB Tech Lab VAST Tester. Validation, deterministic
-            repair, wrapper inspection, playback and tracking QA, and partner-shareable reports across VAST 2.0-4.4.
+            SIMID studio and IAB sample creatives. Independent vastlint-powered rebuild of the legacy IAB Tech Lab VAST
+            Tester. Not affiliated with IAB Tech Lab, and not the official IAB VAST Tag Validator. Validation,
+            deterministic repair, wrapper inspection, playback and tracking QA, and partner-shareable reports across
+            VAST 2.0-4.4.
           </p>
         </div>
         <nav className="masthead-links" aria-label="Reference and feedback">

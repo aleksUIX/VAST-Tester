@@ -2,7 +2,7 @@
 
 **Live: [iab-tech-lab-vast-tester.vastlint.org](https://iab-tech-lab-vast-tester.vastlint.org/)**
 
-A modern, vastlint-powered VAST validator, debugger, and QA workbench.
+IAB-style VAST tester and SIMID studio. A modern, vastlint-powered VAST validator, debugger, and QA workbench. Not an IAB Tech Lab product.
 
 If you are looking for a new and improved alternative to the IAB Tech Lab VAST Tester, this repository is meant to be that starting point. It keeps the familiar idea of a browser-based VAST tester, but adds deeper validation, wrapper inspection, playback diagnostics, tracking visibility, and shareable findings for real ad-tech workflows.
 

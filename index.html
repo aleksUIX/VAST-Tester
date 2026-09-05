@@ -3,11 +3,51 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IAB-style VAST tester: SIMID studio | VASTlint</title>
     <meta
       name="description"
-      content="Independent next-generation fork of the legacy IAB Tech Lab VAST Tester workflow, rebuilt with vastlint-powered validation, repair, wrapper inspection, and runtime QA."
+      content="Independent SIMID studio and IAB-style VAST tester. Handshake QA, host transport, and IAB sample creatives. Not an IAB Tech Lab product, and not the official IAB VAST Tag Validator."
     />
-    <title>Next-Gen VAST Tester</title>
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="https://iab-tech-lab-vast-tester.vastlint.org/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="VASTlint" />
+    <meta property="og:title" content="IAB-style VAST tester: SIMID studio" />
+    <meta
+      property="og:description"
+      content="Independent SIMID studio and IAB-style VAST tester. Not affiliated with IAB Tech Lab."
+    />
+    <meta property="og:url" content="https://iab-tech-lab-vast-tester.vastlint.org/" />
+    <meta property="og:image" content="https://vastlint.org/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@vastlint" />
+    <meta name="twitter:title" content="IAB-style VAST tester: SIMID studio" />
+    <meta
+      name="twitter:description"
+      content="Independent SIMID studio and IAB-style VAST tester. Not an IAB Tech Lab product."
+    />
+    <meta name="twitter:image" content="https://vastlint.org/og-image.png" />
+    <link rel="icon" href="https://vastlint.org/favicon.ico" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "IAB-style VAST tester",
+        "alternateName": "SIMID studio",
+        "url": "https://iab-tech-lab-vast-tester.vastlint.org/",
+        "applicationCategory": "DeveloperApplication",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "description": "Independent SIMID studio and IAB-style VAST tester for handshake QA, host transport, and IAB sample creatives.",
+        "disambiguatingDescription": "Independent open-source workbench. Not affiliated with IAB Tech Lab. Not the official IAB VAST Tag Validator.",
+        "isRelatedTo": [
+          {
+            "@type": "WebApplication",
+            "name": "VAST tag tester",
+            "url": "https://vastlint.org/tester/"
+          }
+        ]
+      }
+    </script>
     <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-8RR59RTTFH"></script>
     <script>
@@ -18,7 +58,18 @@
     </script>
   </head>
   <body>
+    <noscript>
+      <h1>IAB-style VAST tester</h1>
+      <p>
+        SIMID studio and IAB-style VAST tester. Independent of IAB Tech Lab. Not the official IAB
+        VAST Tag Validator.
+      </p>
+      <p>
+        Live VAST URL: <a href="https://vastlint.org/tester/">vastlint.org/tester/</a>. Wrapper hops:
+        <a href="https://vastlint.org/inspect/">vastlint.org/inspect/</a>.
+      </p>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
-  </html>
+</html>
