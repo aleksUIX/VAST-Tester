@@ -41,9 +41,6 @@
               <![CDATA[https://dummyimage.com/1920x1080/111111/ffffff.png&text=Pause+Ad+3.0]]>
             </MediaFile>
           </MediaFiles>
-          <TrackingEvents>
-            <Tracking event="overlayViewDuration"><![CDATA[https://example.com/overlay-view]]></Tracking>
-          </TrackingEvents>
         </Extension>
       </Extensions>
     </InLine>

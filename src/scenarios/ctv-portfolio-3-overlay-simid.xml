@@ -35,9 +35,6 @@
               <![CDATA[/fixtures/simid/overlay-banner.html]]>
             </InteractiveCreativeFile>
           </MediaFiles>
-          <TrackingEvents>
-            <Tracking event="overlayViewDuration"><![CDATA[https://example.com/overlay-view]]></Tracking>
-          </TrackingEvents>
         </Extension>
       </Extensions>
     </InLine>
