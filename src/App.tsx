@@ -3988,26 +3988,39 @@ function App() {
             data-simid-studio={simidStudioOpen ? "expanded" : "inline"}
             data-simid-present={creativeSurfaces.simid.length > 0 ? "true" : "false"}
           >
-            {creativeSurfaces.simid.length > 0 ? (
-              <div className="simid-studio-bar">
-                <div>
+            <div className="simid-studio-chrome">
+              {creativeSurfaces.simid.length > 0 ? (
+                <div className="simid-studio-bar">
                   <strong>SIMID studio</strong>
-                  <p>Black stage. Media under the video. Protocol log beside the stage.</p>
+                  <div className="simid-studio-bar-actions">
+                    <button className="secondary" onClick={() => void preparePlaybackRunner()} type="button">
+                      Prepare runner
+                    </button>
+                    <button
+                      className="secondary"
+                      onClick={() => (simidStudioOpen ? setSimidStudioOpen(false) : openSimidStudio())}
+                      type="button"
+                    >
+                      {simidStudioOpen ? "Exit studio" : "Expand studio"}
+                    </button>
+                  </div>
                 </div>
-                <div className="simid-studio-bar-actions">
-                  <button className="secondary" onClick={() => void preparePlaybackRunner()} type="button">
-                    Prepare runner
-                  </button>
-                  <button
-                    className="secondary"
-                    onClick={() => (simidStudioOpen ? setSimidStudioOpen(false) : openSimidStudio())}
-                    type="button"
-                  >
-                    {simidStudioOpen ? "Exit studio" : "Expand studio"}
-                  </button>
-                </div>
-              </div>
-            ) : null}
+              ) : null}
+              <PlayerProfilePanel
+                compact={simidStudioOpen}
+                evaluation={playerMediaEvaluation}
+                onProfile={(id) => {
+                  setSelectedPlayerProfileId(id);
+                  const next = playerProfileById(id);
+                  appendRunnerTimeline(
+                    "ui",
+                    `player:${next.id}`,
+                    `${next.label}: ${next.summary}`,
+                  );
+                }}
+                profile={playerProfile}
+              />
+            </div>
           <div className="metric-strip">
             <Metric label="Status" value={runnerSnapshot.status} accent={runnerSnapshot.status === "error" ? "error" : runnerSnapshot.status === "playing" ? "good" : "neutral"} />
             <Metric label="Media" value={runnerSnapshot.mediaSelection.selected?.mimeType ?? "none"} accent="neutral" />
@@ -4018,20 +4031,6 @@ function App() {
             />
             <Metric label="Viewability" value={runnerSnapshot.viewability ?? "not set"} accent="neutral" />
           </div>
-
-          <PlayerProfilePanel
-            evaluation={playerMediaEvaluation}
-            onProfile={(id) => {
-              setSelectedPlayerProfileId(id);
-              const next = playerProfileById(id);
-              appendRunnerTimeline(
-                "ui",
-                `player:${next.id}`,
-                `${next.label}: ${next.summary}`,
-              );
-            }}
-            profile={playerProfile}
-          />
 
           <div className="runner-toolbar">
             <button className="secondary" onClick={() => void preparePlaybackRunner()} type="button">

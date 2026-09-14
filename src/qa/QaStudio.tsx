@@ -777,7 +777,6 @@ export function OverlayStage({
         <details
           className="qa-simid-protocol"
           data-simid-protocol="true"
-          {...(studioExpanded ? { open: true } : {})}
         >
           <summary>
             <span className="qa-simid-kicker">Simulate</span>
