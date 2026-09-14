@@ -49,6 +49,8 @@ Use this repo when you want a browser-first debugging workflow. Use `vastlint` d
 
 SIMID is split the same way. `vastlint` checks the VAST envelope (`type`, `apiFramework`, HTTPS, fallback media). Fetching the creative HTML, reading frame headers, and (later) driving `createSession` belong here. A tag that is XML-clean and still dies in the player is tester work, not a bid-time verdict.
 
+Publisher eligibility is the same split. `vastlint` stays on the IAB catalog. Netflix bitrate floors, Roku third-party bands, and QR bans are destination packs in this UI, not `VAST-*-*` rule IDs. See [ROADMAP.md](ROADMAP.md) and [docs/publisher-packs.md](docs/publisher-packs.md).
+
 ## Getting Started
 
 Install dependencies:
