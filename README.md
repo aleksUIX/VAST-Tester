@@ -1,5 +1,7 @@
 # VAST Tester AleksUIX
 
+This is the **host** branch: the vastlint.org deployment. IAB-neutral source lives on `master`. Merge `master` into `host` for features, then keep `src/branding.ts`, `src/BrandChrome.tsx`, `index.html`, and this README on the host side.
+
 **Live: [iab-tech-lab-vast-tester.vastlint.org](https://iab-tech-lab-vast-tester.vastlint.org/)**
 
 IAB-style VAST tester and SIMID studio. A modern, vastlint-powered VAST validator, debugger, and QA workbench. Not an IAB Tech Lab product.

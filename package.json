@@ -12,8 +12,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "cf:login": "npx wrangler login",
-    "cf:pages:create": "npx wrangler pages project create iab-tech-lab-vast-tester --production-branch=master",
-    "deploy:pages": "npm run build && npx wrangler pages deploy dist --project-name=iab-tech-lab-vast-tester --branch=master",
+    "cf:pages:create": "npx wrangler pages project create iab-tech-lab-vast-tester --production-branch=host",
+    "deploy:pages": "npm run build && npx wrangler pages deploy dist --project-name=iab-tech-lab-vast-tester --branch=host",
     "preview": "vite preview"
   },
   "dependencies": {
