@@ -43,7 +43,20 @@ import wrapperSignalsXml from "./scenarios/wrapper-signals.xml?raw";
 
 import { OverlayStage, SimidInspectPanel, type SimidCommands } from "./qa/QaStudio";
 import { SimidStudioGuide } from "./qa/SimidStudioGuide";
+import { OmidPanel } from "./qa/OmidPanel";
+import { OmidSessionHost } from "./qa/omidSession";
+import { emptyOmidSnapshot, type OmidAccessMode, type OmidSessionSnapshot } from "./qa/omidTypes";
+import { collectOmidScripts, readLinearSkipoffset } from "./qa/parseVerifications";
 import { parseCreativeSurfaces } from "./qa/parseCreativeSurfaces";
+import { PlayerProfilePanel } from "./qa/PlayerProfilePanel";
+import {
+  DEFAULT_PLAYER_PROFILE_ID,
+  collectPlayerMediaFiles,
+  evaluatePlayerMedia,
+  mediaSelectionOptions,
+  playerProfileById,
+  simidVersionForProfile,
+} from "./qa/playerProfiles";
 import { resolveQaAssetUrl } from "./qa/resolveQaAssetUrl";
 import type { FixResult, Issue, ValidateOptions } from "vastlint";
 import { createVastSession } from "vastlint-client";
@@ -129,7 +142,7 @@ interface TimelineEntry {
   at: string;
   title: string;
   detail: string;
-  kind: "ui" | "media" | "session" | "tracking" | "simid";
+  kind: "ui" | "media" | "session" | "tracking" | "simid" | "omid";
 }
 
 interface RuntimeVerificationResource {
@@ -1689,6 +1702,7 @@ function buildTrackingWaterfall(
     ["clickThrough", 17],
     ["skip", 18],
     ["error", 19],
+    ["verificationNotExecuted", 20],
   ]);
 
   return seededTargets
@@ -2115,6 +2129,10 @@ function App() {
   const runnerEventCounter = useRef(0);
   const runnerVideoRef = useRef<HTMLVideoElement | null>(null);
   const simidCommandsRef = useRef<SimidCommands | null>(null);
+  const omidHostRef = useRef<OmidSessionHost | null>(null);
+  const [omidAccessMode, setOmidAccessMode] = useState<OmidAccessMode>("full");
+  const [omidSnapshot, setOmidSnapshot] = useState<OmidSessionSnapshot>(() => emptyOmidSnapshot());
+  const [selectedPlayerProfileId, setSelectedPlayerProfileId] = useState(DEFAULT_PLAYER_PROFILE_ID);
   const xmlTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const runnerProgressBucketRef = useRef(-1);
   const macroDefaultsRef = useRef({
@@ -2317,13 +2335,11 @@ function App() {
     }),
     [activeValidateOptions, lastRun.payload, lastRun.sourceMode, runnerFetch],
   );
+  const playerProfile = playerProfileById(selectedPlayerProfileId);
   const playback = useVastPlayback({
     session: runnerSession,
     autoInitialize: false,
-    mediaSelection: {
-      supportedMimeTypes: ["video/mp4", "video/webm", "application/x-mpegURL"],
-      preferredMimeTypes: ["video/mp4", "video/webm"],
-    },
+    mediaSelection: mediaSelectionOptions(playerProfile),
   });
   const runnerTracker = useVastTracker({ session: runnerSession });
   const runnerSnapshot = playback.snapshot;
@@ -2332,11 +2348,24 @@ function App() {
     [resolvedAds, runnerSnapshot.resolvedAd],
   );
   const inspectionXml = snapshot.rootXml ?? (lastRun.sourceMode === "xml" ? lastRun.payload : null);
+  const playerMediaFiles = useMemo(
+    () => collectPlayerMediaFiles(inspectionXml, inventoryAds),
+    [inspectionXml, inventoryAds],
+  );
+  const playerMediaEvaluation = useMemo(
+    () => evaluatePlayerMedia(playerProfile, playerMediaFiles),
+    [playerMediaFiles, playerProfile],
+  );
   const creativeSurfaces = useMemo(() => parseCreativeSurfaces(inspectionXml), [inspectionXml]);
   const runtimeInspection = useMemo(
     () => buildRuntimeInspection(inspectionXml, inventoryAds),
     [inspectionXml, inventoryAds],
   );
+  const omidScripts = useMemo(
+    () => collectOmidScripts(inventoryAds, snapshot.wrapperChain, inspectionXml),
+    [inventoryAds, inspectionXml, snapshot.wrapperChain],
+  );
+  const omidSkipOffsetSec = useMemo(() => readLinearSkipoffset(inspectionXml), [inspectionXml]);
   const runnerMediaUrl = useMemo(
     () => buildPlayableMediaUrl(runnerSnapshot.mediaSelection.selected?.url ?? null),
     [runnerSnapshot.mediaSelection.selected?.url],
@@ -2504,12 +2533,14 @@ function App() {
         viewability: runnerSnapshot.viewability,
         milestones: runnerSnapshot.milestones,
         macroPreset: activeMacroPreset?.id ?? null,
+        playerProfile: playerProfile.id,
         macros: activeMacros,
         trackingWaterfall: trackingWaterfallRows,
         trackingHistory: runnerTracker.tracking.history,
+        omid: omidSnapshot,
       },
     }),
-    [activeComplianceVerdict, activeMacroPreset?.id, activeMacros, activeScenario?.label, assetAuditRows, complianceVerdicts, inventoryAds, issues, lastFix, lastRun, runnerMediaUrl, runnerSnapshot.clickThroughUrl, runnerSnapshot.fullscreen, runnerSnapshot.milestones, runnerSnapshot.muted, runnerSnapshot.status, runnerSnapshot.viewability, runnerTracker.tracking.history, severity, snapshot, trackingWaterfallRows],
+    [activeComplianceVerdict, activeMacroPreset?.id, activeMacros, activeScenario?.label, assetAuditRows, complianceVerdicts, inventoryAds, issues, lastFix, lastRun, omidSnapshot, playerProfile.id, runnerMediaUrl, runnerSnapshot.clickThroughUrl, runnerSnapshot.fullscreen, runnerSnapshot.milestones, runnerSnapshot.muted, runnerSnapshot.status, runnerSnapshot.viewability, runnerTracker.tracking.history, severity, snapshot, trackingWaterfallRows],
   );
 
   useEffect(() => {
@@ -2686,6 +2717,86 @@ function App() {
       ...current,
     ].slice(0, 20));
   };
+
+  const stopOmidSession = () => {
+    omidHostRef.current?.tearDown();
+    omidHostRef.current = null;
+  };
+
+  const startOmidSession = async () => {
+    const video = runnerVideoRef.current;
+    if (!video) {
+      appendRunnerTimeline("omid", "omid:wait", "Prepare the runner so the media element exists.");
+      return;
+    }
+    if (omidScripts.length === 0) {
+      appendRunnerTimeline("omid", "omid:skip", "No omid JavaScriptResource to bind.");
+      return;
+    }
+
+    stopOmidSession();
+    const host = new OmidSessionHost({
+      accessMode: omidAccessMode,
+      scripts: omidScripts,
+      video,
+      skipOffsetSec: omidSkipOffsetSec,
+      macros: activeMacros,
+      onChange: setOmidSnapshot,
+    });
+    omidHostRef.current = host;
+    await host.start();
+    host.signalLoaded({
+      isSkippable: omidSkipOffsetSec != null && omidSkipOffsetSec >= 0,
+      skipOffset: omidSkipOffsetSec ?? 0,
+      isAutoPlay: true,
+      position: "standalone",
+    });
+  };
+
+  useEffect(() => {
+    stopOmidSession();
+    setOmidSnapshot((current) => emptyOmidSnapshot(current.accessMode));
+    return () => {
+      omidHostRef.current?.tearDown();
+      omidHostRef.current = null;
+    };
+  }, [lastRun.id]);
+
+  useEffect(() => {
+    if (!playerProfile.omid || !runnerMediaUrl || omidScripts.length === 0) {
+      if (!playerProfile.omid) {
+        stopOmidSession();
+        setOmidSnapshot((current) => emptyOmidSnapshot(current.accessMode));
+      }
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      void startOmidSession();
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [lastRun.id, omidScripts.length, playerProfile.omid, runnerMediaUrl]);
+
+  useEffect(() => {
+    const host = omidHostRef.current;
+    if (!host) {
+      return;
+    }
+    const milestones = runnerSnapshot.milestones;
+    if (milestones.firstQuartile) {
+      host.signalQuartile("firstQuartile");
+    }
+    if (milestones.midpoint) {
+      host.signalQuartile("midpoint");
+    }
+    if (milestones.thirdQuartile) {
+      host.signalQuartile("thirdQuartile");
+    }
+    if (milestones.complete) {
+      host.signalQuartile("complete");
+    }
+  }, [runnerSnapshot.milestones]);
 
   const queueRun = (nextRun: Omit<RunRequest, "id">) => {
     setLastRun((current) => ({
@@ -2888,6 +2999,7 @@ function App() {
     zip.file("runtime/tracking-waterfall.json", JSON.stringify(trackingWaterfallRows, null, 2));
     zip.file("runtime/tracking-history.json", JSON.stringify(runnerTracker.tracking.history, null, 2));
     zip.file("runtime/timeline.json", JSON.stringify(timelineEntries, null, 2));
+    zip.file("runtime/omid-session.json", JSON.stringify(omidSnapshot, null, 2));
     zip.file("runtime/playback.json", JSON.stringify({
       status: runnerSnapshot.status,
       mediaUrl: runnerMediaUrl,
@@ -3009,6 +3121,7 @@ function App() {
 
   const skipPlayback = async () => {
     try {
+      omidHostRef.current?.signalSkip();
       await playback.skip();
       runnerVideoRef.current?.pause();
       appendRunnerTimeline("ui", "runner:skip", "Marked the current ad as skipped.");
@@ -3019,6 +3132,7 @@ function App() {
 
   const signalRunnerError = async () => {
     try {
+      omidHostRef.current?.signalError("Operator signaled a VAST error.");
       await playback.signalError({ macros: activeMacros });
       runnerVideoRef.current?.pause();
       appendRunnerTimeline("ui", "runner:signal-error", "Tracked an error against the current playback session.");
@@ -3037,6 +3151,7 @@ function App() {
 
     try {
       await playback.setMuted(nextMuted);
+      omidHostRef.current?.signalVolume(nextMuted ? 0 : (video?.volume ?? 0));
       appendRunnerTimeline("ui", nextMuted ? "runner:mute" : "runner:unmute", `Muted=${String(nextMuted)}.`);
     } catch (error) {
       appendRunnerTimeline("ui", "runner:mute-error", error instanceof Error ? error.message : String(error));
@@ -3050,6 +3165,7 @@ function App() {
 
     try {
       await playback.setMuted(nextMuted);
+      omidHostRef.current?.signalVolume(nextMuted ? 0 : (video?.volume ?? 0));
     } catch (error) {
       appendRunnerTimeline("media", "video:mute-sync-error", error instanceof Error ? error.message : String(error));
     }
@@ -3063,12 +3179,19 @@ function App() {
     try {
       if (runnerSnapshot.status === "paused") {
         await playback.resume();
+        omidHostRef.current?.signalResume();
         appendRunnerTimeline("media", "video:resume", "Resumed the media element.");
         return;
       }
 
       if (!runnerSnapshot.milestones.start) {
+        const video = runnerVideoRef.current;
         await playback.start();
+        omidHostRef.current?.signalImpression();
+        omidHostRef.current?.signalStart(
+          video && Number.isFinite(video.duration) ? video.duration : 0,
+          video && !video.muted ? video.volume : 0,
+        );
         appendRunnerTimeline("media", "video:start", "Started playback and dispatched impression/start tracking.");
       }
     } catch (error) {
@@ -3084,6 +3207,7 @@ function App() {
 
     try {
       await playback.pause();
+      omidHostRef.current?.signalPause();
       appendRunnerTimeline("media", "video:pause", "Paused the media element.");
     } catch (error) {
       appendRunnerTimeline("media", "video:pause-error", error instanceof Error ? error.message : String(error));
@@ -3113,6 +3237,10 @@ function App() {
   const handleRunnerEnded = async () => {
     try {
       await playback.complete();
+      omidHostRef.current?.signalQuartile("complete");
+      window.setTimeout(() => {
+        omidHostRef.current?.finish();
+      }, 1000);
       appendRunnerTimeline("media", "video:ended", "Completed playback for the current ad.");
     } catch (error) {
       appendRunnerTimeline("media", "video:end-error", error instanceof Error ? error.message : String(error));
@@ -3888,6 +4016,20 @@ function App() {
             <Metric label="Viewability" value={runnerSnapshot.viewability ?? "not set"} accent="neutral" />
           </div>
 
+          <PlayerProfilePanel
+            evaluation={playerMediaEvaluation}
+            onProfile={(id) => {
+              setSelectedPlayerProfileId(id);
+              const next = playerProfileById(id);
+              appendRunnerTimeline(
+                "ui",
+                `player:${next.id}`,
+                `${next.label}: ${next.summary}`,
+              );
+            }}
+            profile={playerProfile}
+          />
+
           <div className="runner-toolbar">
             <button className="secondary" onClick={() => void preparePlaybackRunner()} type="button">
               Prepare runner
@@ -3986,6 +4128,8 @@ function App() {
                     onSimidLog={(title, detail) => appendRunnerTimeline("simid", title, detail)}
                     keepLogVisible={simidStudioOpen}
                     studioExpanded={simidStudioOpen}
+                    simidEnabled={playerProfile.simid !== "off"}
+                    simidVersion={simidVersionForProfile(playerProfile)}
                     surfaces={creativeSurfaces}
                     videoRef={runnerVideoRef}
                   >
@@ -4177,6 +4321,37 @@ function App() {
           </div>
 
           <SimidInspectPanel onExpandStudio={openSimidStudio} surfaces={creativeSurfaces} />
+
+          <OmidPanel
+            canStart={Boolean(runnerMediaUrl) && omidScripts.length > 0}
+            onAccessMode={(mode) => {
+              setOmidAccessMode(mode);
+              setOmidSnapshot((current) => ({ ...current, accessMode: mode }));
+            }}
+            onError={() => {
+              omidHostRef.current?.signalError("Operator sent a session error.");
+            }}
+            onFinish={() => {
+              omidHostRef.current?.finish();
+            }}
+            onReject={(reason) => {
+              void (async () => {
+                await omidHostRef.current?.rejectAll(reason);
+                try {
+                  await runnerTracker.track("verificationNotExecuted", {
+                    macros: { ...activeMacros, REASON: reason },
+                  });
+                  appendRunnerTimeline("omid", "omid:verificationNotExecuted", `Fired verificationNotExecuted with REASON ${reason}.`);
+                } catch (error) {
+                  appendRunnerTimeline("omid", "omid:verificationNotExecuted", error instanceof Error ? error.message : String(error));
+                }
+              })();
+            }}
+            onStart={() => {
+              void startOmidSession();
+            }}
+            snapshot={omidSnapshot.scripts.length > 0 ? omidSnapshot : { ...omidSnapshot, scripts: omidScripts, accessMode: omidAccessMode }}
+          />
 
           {runtimeInspection.verificationResources.length > 0 ? (
             <div className="table-surface runtime-table">

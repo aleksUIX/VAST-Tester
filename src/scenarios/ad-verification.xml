@@ -27,7 +27,7 @@
         </Creative>
       </Creatives>
       <AdVerifications>
-        <Verification vendor="vastlint.org-omid-demo">
+        <Verification vendor="iabtechlab.com-omid">
           <JavaScriptResource apiFramework="omid" browserOptional="true"><![CDATA[/fixtures/omid/omid-validation-verification-script-v1.js]]></JavaScriptResource>
           <TrackingEvents>
             <Tracking event="verificationNotExecuted"><![CDATA[https://example.com/verification-not-executed?reason=[REASON]]]></Tracking>

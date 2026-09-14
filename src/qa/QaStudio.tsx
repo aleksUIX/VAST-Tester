@@ -11,6 +11,7 @@ import {
 } from "./simidHealth";
 import { inspectSimidCreative } from "./simidInspect";
 import { SimidPlayer } from "./simidPlayer";
+import type { SimidProtocolVersion } from "./playerProfiles";
 import type {
   CreativeSurfaces,
   OverlaySurface,
@@ -44,6 +45,8 @@ interface OverlayStageProps {
   onSimidLog: (title: string, detail: string) => void;
   keepLogVisible?: boolean;
   studioExpanded?: boolean;
+  simidEnabled?: boolean;
+  simidVersion?: SimidProtocolVersion;
   commandsRef?: RefObject<SimidCommands | null>;
   children?: ReactNode;
 }
@@ -244,6 +247,8 @@ export function OverlayStage({
   onSimidLog,
   keepLogVisible = false,
   studioExpanded = false,
+  simidEnabled = true,
+  simidVersion = "1.1",
   commandsRef,
   children,
 }: OverlayStageProps) {
@@ -279,7 +284,7 @@ export function OverlayStage({
     muted: true,
     volume: 1,
   });
-  const simid = primarySimidSurface(surfaces);
+  const simid = simidEnabled ? primarySimidSurface(surfaces) : null;
   const banners = staticOverlays(surfaces);
   const stageBanners = banners.filter((banner) => banner.layout === "stage");
   const overlayBanners = banners.filter((banner) => banner.layout !== "stage");
@@ -417,6 +422,7 @@ export function OverlayStage({
           }
         },
       },
+      simidVersion,
     );
 
     playerRef.current = player;
@@ -439,7 +445,7 @@ export function OverlayStage({
         playerRef.current = null;
       }
     };
-  }, [sessionKey, simidId, simidSrc, videoRef]);
+  }, [sessionKey, simidId, simidSrc, simidVersion, videoRef]);
 
   useEffect(() => {
     setAppliedCreativeUrl(null);

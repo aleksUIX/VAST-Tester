@@ -1,3 +1,4 @@
+import type { SimidProtocolVersion } from "./playerProfiles";
 import type { OverlaySurface, SimidDimensions, SimidHandshakeStep, SimidLogEntry, SimidPlayerMessage } from "./types";
 
 const CREATE_SESSION = "createSession";
@@ -80,15 +81,22 @@ function asDimensions(value: unknown): SimidDimensions | null {
   const record = value as Record<string, unknown>;
   const width = Number(record.width);
   const height = Number(record.height);
-  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+  if (!Number.isFinite(width) || !Number.isFinite(height)) {
     return null;
   }
   return {
-    x: Number.isFinite(Number(record.x)) ? Number(record.x) : 0,
-    y: Number.isFinite(Number(record.y)) ? Number(record.y) : 0,
+    x: Number(record.x) || 0,
+    y: Number(record.y) || 0,
     width,
     height,
   };
+}
+
+function initDimensions(size: SimidDimensions, version: SimidProtocolVersion): SimidDimensions {
+  if (version === "1.2" && (size.width <= 0 || size.height <= 0)) {
+    return { x: size.x, y: size.y, width: -1, height: -1 };
+  }
+  return size;
 }
 
 function trackingUrlsFrom(args: Record<string, unknown>): string[] {
@@ -124,6 +132,7 @@ export class SimidPlayer {
     private readonly host: SimidHost,
     private readonly surface: OverlaySurface,
     private readonly callbacks: SimidPlayerCallbacks,
+    private readonly protocolVersion: SimidProtocolVersion = "1.1",
   ) {
     this.skipOffsetSec =
       surface.skipoffsetSec != null && surface.skipoffsetSec >= 0 ? surface.skipoffsetSec : DEFAULT_SKIP_OFFSET_SEC;
@@ -517,20 +526,21 @@ export class SimidPlayer {
   }
 
   private sendInit() {
-    const stage = this.host.getStageSize();
+    const stage = initDimensions(this.host.getStageSize(), this.protocolVersion);
+    const creative = initDimensions(this.host.getCreativeSize(), this.protocolVersion);
     const video = this.host.getVideo();
     const duration = this.durationOverride ?? (video && Number.isFinite(video.duration) ? video.duration : 20);
     const clickThru = this.host.clickThroughUrl ?? this.surface.clickThroughUrl ?? "";
     const environmentData = {
       videoDimensions: stage,
-      creativeDimensions: stage,
+      creativeDimensions: creative,
       fullscreen: false,
       fullscreenAllowed: true,
       variableDurationAllowed: this.surface.variableDuration === "true",
       skippable: true,
       skippableState: "playerHandles",
       skipoffset: this.skipOffsetSec,
-      version: "1.1",
+      version: this.protocolVersion,
       siteId: "iab-tech-lab-vast-tester",
       siteUrl: typeof location === "object" ? location.host : "",
       appId: "",

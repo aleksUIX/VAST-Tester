@@ -2539,6 +2539,146 @@ body.simid-studio-lock {
   margin-bottom: 14px;
 }
 
+.omid-panel {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  background: var(--panel-soft);
+}
+
+.omid-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.omid-panel-head > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.omid-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.omid-access {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--label);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.omid-panel-copy,
+.omid-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.player-profile-panel {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  background: var(--panel-soft);
+}
+
+.player-profile-columns {
+  grid-template-columns: minmax(180px, 1.2fr) minmax(90px, 0.5fr) minmax(0, 1.4fr);
+}
+
+.player-profile-table {
+  max-height: 280px;
+  overflow: auto;
+}
+
+.pill.player-media-picked {
+  background: #e8f6ee;
+  color: #1a6b3c;
+}
+
+.pill.player-media-playable {
+  background: #ececec;
+  color: #444;
+}
+
+.pill.player-media-dropped {
+  background: #fff1ef;
+  color: #8b2017;
+}
+
+.omid-script-columns {
+  grid-template-columns: minmax(140px, 0.7fr) minmax(160px, 0.8fr) minmax(0, 1.5fr);
+}
+
+.omid-script-table {
+  max-height: 280px;
+  overflow: auto;
+}
+
+.omid-event-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.omid-log-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.omid-log {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 220px;
+  overflow: auto;
+  font-size: 12px;
+}
+
+.omid-log li {
+  display: grid;
+  gap: 2px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+}
+
+.omid-log li strong {
+  font-size: var(--label);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.omid-log-empty {
+  color: var(--muted);
+}
+
+.pill.omid-script-injected,
+.omid-script-injectable {
+  background: #e8f6ee;
+  color: #1a6b3c;
+}
+
+.pill.omid-script-not-executed,
+.pill.omid-script-failed {
+  background: #fff1ef;
+  color: #8b2017;
+}
+
 .preview-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -2787,7 +2927,9 @@ body.simid-studio-lock {
   .findings-columns,
   .waterfall-columns,
   .asset-columns,
-  .verification-columns {
+  .verification-columns,
+  .omid-script-columns,
+  .player-profile-columns {
     grid-template-columns: 1fr;
   }
 

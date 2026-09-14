@@ -24,6 +24,7 @@
             <MediaFiles>
               <MediaFile delivery="progressive" type="video/webm" width="640" height="360" bitrate="800"><![CDATA[/fixtures/video/360p30.webm]]></MediaFile>
               <MediaFile delivery="progressive" type="video/mp4" width="640" height="360" bitrate="1200"><![CDATA[/fixtures/video/360p30.mp4]]></MediaFile>
+              <MediaFile delivery="streaming" type="application/x-mpegURL" width="1920" height="1080" bitrate="2500"><![CDATA[/fixtures/video/360p30.m3u8]]></MediaFile>
               <Mezzanine delivery="progressive" type="video/mp4" width="3840" height="2160"><![CDATA[https://example.com/mezzanine/source-4k.mp4]]></Mezzanine>
             </MediaFiles>
           </Linear>
