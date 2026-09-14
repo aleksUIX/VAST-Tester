@@ -8,10 +8,11 @@ import {
   formatSimidLogText,
   formatSimidSessionJson,
   type SimidHealthReport,
+  type SimidSessionPlayer,
 } from "./simidHealth";
 import { inspectSimidCreative } from "./simidInspect";
 import { SimidPlayer } from "./simidPlayer";
-import type { SimidProtocolVersion } from "./playerProfiles";
+import type { PlayerProfile, SimidProtocolVersion } from "./playerProfiles";
 import type {
   CreativeSurfaces,
   OverlaySurface,
@@ -47,6 +48,7 @@ interface OverlayStageProps {
   studioExpanded?: boolean;
   simidEnabled?: boolean;
   simidVersion?: SimidProtocolVersion;
+  playerProfile?: PlayerProfile | null;
   commandsRef?: RefObject<SimidCommands | null>;
   children?: ReactNode;
 }
@@ -102,6 +104,7 @@ function SimidHealthDeck({
   urlDraft,
   urlSwapped,
   copied,
+  player,
   onCopy,
   onUrlDraft,
   onApplyUrl,
@@ -116,6 +119,7 @@ function SimidHealthDeck({
   urlDraft: string;
   urlSwapped: boolean;
   copied: string | null;
+  player: SimidSessionPlayer | null;
   onCopy: (value: string, label: string) => void;
   onUrlDraft: (value: string) => void;
   onApplyUrl: () => void;
@@ -128,6 +132,7 @@ function SimidHealthDeck({
     lastInit,
     surface,
     creativeUrl,
+    player,
   });
   const initJson = lastInit ? JSON.stringify(lastInit, null, 2) : "";
 
@@ -141,8 +146,8 @@ function SimidHealthDeck({
         <button className="ghost" onClick={() => onCopy(formatSimidDiagnosis(report), "Diagnosis copied")} type="button">
           Copy diagnosis
         </button>
-        <button className="ghost" onClick={() => onCopy(sessionJson, "Session copied")} type="button">
-          Copy session
+        <button className="ghost" onClick={() => onCopy(sessionJson, "Session JSON copied")} type="button">
+          Copy session JSON
         </button>
         <button className="ghost" disabled={!initJson} onClick={() => onCopy(initJson, "Init copied")} type="button">
           Copy init
@@ -249,6 +254,7 @@ export function OverlayStage({
   studioExpanded = false,
   simidEnabled = true,
   simidVersion = "1.1",
+  playerProfile = null,
   commandsRef,
   children,
 }: OverlayStageProps) {
@@ -285,6 +291,14 @@ export function OverlayStage({
     volume: 1,
   });
   const simid = simidEnabled ? primarySimidSurface(surfaces) : null;
+  const sessionPlayer: SimidSessionPlayer | null = playerProfile
+    ? {
+        id: playerProfile.id,
+        label: playerProfile.label,
+        simid: playerProfile.simid,
+        omid: playerProfile.omid,
+      }
+    : null;
   const banners = staticOverlays(surfaces);
   const stageBanners = banners.filter((banner) => banner.layout === "stage");
   const overlayBanners = banners.filter((banner) => banner.layout !== "stage");
@@ -858,6 +872,7 @@ export function OverlayStage({
             inspect={inspect}
             lastInit={playerRef.current?.lastInit ?? null}
             log={log}
+            player={sessionPlayer}
             onApplyUrl={() => {
               const next = urlDraft.trim();
               if (!next) {
@@ -898,6 +913,30 @@ export function OverlayStage({
                 type="button"
               >
                 Copy log
+              </button>
+              <button
+                className="ghost"
+                disabled={!simid || !health}
+                onClick={() => {
+                  if (!simid || !health) {
+                    return;
+                  }
+                  copyNotice(
+                    formatSimidSessionJson({
+                      report: health,
+                      log,
+                      inspect,
+                      lastInit: playerRef.current?.lastInit ?? null,
+                      surface: simid,
+                      creativeUrl: simidSrc,
+                      player: sessionPlayer,
+                    }),
+                    "Session JSON copied",
+                  );
+                }}
+                type="button"
+              >
+                Copy session JSON
               </button>
               <button
                 className="ghost"

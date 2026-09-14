@@ -474,6 +474,13 @@ export function formatSimidLogText(log: SimidLogEntry[]): string {
     .join("\n");
 }
 
+export interface SimidSessionPlayer {
+  id: string;
+  label: string;
+  simid: string;
+  omid: boolean;
+}
+
 export function formatSimidSessionJson(input: {
   report: SimidHealthReport;
   log: SimidLogEntry[];
@@ -481,10 +488,16 @@ export function formatSimidSessionJson(input: {
   lastInit: Record<string, unknown> | null;
   surface: OverlaySurface;
   creativeUrl: string | null;
+  player?: SimidSessionPlayer | null;
 }): string {
+  const origin = typeof globalThis.location === "object" ? globalThis.location.origin : null;
   return JSON.stringify(
     {
+      kind: "vast-tester-simid-session",
+      schemaVersion: 1,
       at: new Date().toISOString(),
+      origin,
+      player: input.player ?? null,
       headline: input.report.headline,
       status: input.report.status,
       handshake: input.report.handshake,
