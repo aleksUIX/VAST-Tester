@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="2.0">
+  <Ad id="ctv-portfolio-2-overlay-simid-1">
+    <InLine>
+      <AdSystem version="1.0">vast-tester</AdSystem>
+      <AdTitle>CTV Ad Portfolio 2.0 overlay SIMID</AdTitle>
+      <Impression><![CDATA[https://example.com/impression]]></Impression>
+      <Creatives>
+        <Creative id="creative-overlay-2" AdID="AD-ID-OVERLAY-2">
+          <NonLinearAds>
+            <TrackingEvents>
+              <Tracking event="creativeView"><![CDATA[https://example.com/creative-view]]></Tracking>
+            </TrackingEvents>
+            <NonLinear id="nl-overlay-2" width="1400" height="400" scalable="true" maintainAspectRatio="true">
+              <StaticResource creativeType="image/png"><![CDATA[https://dummyimage.com/1400x400/111111/ffffff.png&text=Overlay+2.0]]></StaticResource>
+              <NonLinearClickThrough><![CDATA[https://example.com/overlay-click]]></NonLinearClickThrough>
+            </NonLinear>
+          </NonLinearAds>
+        </Creative>
+      </Creatives>
+      <Extensions>
+        <Extension type="ctv_ad_portfolio">
+          <CreativeId>creative-overlay-2</CreativeId>
+          <plcmt>7</plcmt>
+          <pos>14</pos>
+          <playbackmethod>2</playbackmethod>
+          <attr>23</attr>
+          <Duration>00:00:15</Duration>
+          <MediaFiles>
+            <MediaFile delivery="progressive" type="image/png" width="1400" height="400">
+              <![CDATA[https://dummyimage.com/1400x400/111111/ffffff.png&text=Overlay+2.0]]>
+            </MediaFile>
+            <InteractiveCreativeFile type="text/html" apiFramework="SIMID" variableDuration="false">
+              <![CDATA[/fixtures/simid/overlay-banner.html]]>
+            </InteractiveCreativeFile>
+          </MediaFiles>
+          <TrackingEvents>
+            <Tracking event="overlayViewDuration"><![CDATA[https://example.com/overlay-view]]></Tracking>
+          </TrackingEvents>
+        </Extension>
+      </Extensions>
+    </InLine>
+  </Ad>
+</VAST>

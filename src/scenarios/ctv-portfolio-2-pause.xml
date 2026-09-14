@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="2.0">
+  <Ad id="ctv-portfolio-2-pause-1">
+    <InLine>
+      <AdSystem version="1.0">vast-tester</AdSystem>
+      <AdTitle>CTV Ad Portfolio 2.0 pause</AdTitle>
+      <Impression><![CDATA[https://example.com/impression]]></Impression>
+      <Creatives>
+        <Creative id="creative-pause-2" AdID="AD-ID-PAUSE-2">
+          <NonLinearAds>
+            <TrackingEvents>
+              <Tracking event="creativeView"><![CDATA[https://example.com/creative-view]]></Tracking>
+              <Tracking event="close"><![CDATA[https://example.com/close]]></Tracking>
+            </TrackingEvents>
+            <NonLinear id="nl-pause-2" width="1920" height="1080" scalable="true" maintainAspectRatio="true">
+              <StaticResource creativeType="image/png"><![CDATA[https://dummyimage.com/1920x1080/111111/ffffff.png&text=Pause+Ad+2.0]]></StaticResource>
+              <NonLinearClickThrough><![CDATA[https://example.com/pause-click]]></NonLinearClickThrough>
+            </NonLinear>
+          </NonLinearAds>
+          <CreativeExtensions>
+            <CreativeExtension type="tl_qrcode">
+              <QrCodeScanUrl><![CDATA[https://example.com/qr]]></QrCodeScanUrl>
+              <QrCodeImageUrl><![CDATA[https://dummyimage.com/200x200/ffffff/111111.png&text=QR]]></QrCodeImageUrl>
+              <QrCodePosition xPosition="10%" yPosition="70%"/>
+              <QrCodeSize size="15%"/>
+            </CreativeExtension>
+          </CreativeExtensions>
+        </Creative>
+      </Creatives>
+      <Extensions>
+        <Extension type="ctv_ad_portfolio">
+          <CreativeId>creative-pause-2</CreativeId>
+          <plcmt>5</plcmt>
+          <pos>7</pos>
+          <playbackmethod>9</playbackmethod>
+          <attr>19</attr>
+          <attr>21</attr>
+          <MediaFiles>
+            <MediaFile delivery="progressive" type="image/png" width="1920" height="1080">
+              <![CDATA[https://dummyimage.com/1920x1080/111111/ffffff.png&text=Pause+Ad+2.0]]>
+            </MediaFile>
+          </MediaFiles>
+          <TrackingEvents>
+            <Tracking event="overlayViewDuration"><![CDATA[https://example.com/overlay-view]]></Tracking>
+          </TrackingEvents>
+        </Extension>
+      </Extensions>
+    </InLine>
+  </Ad>
+</VAST>

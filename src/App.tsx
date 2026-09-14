@@ -28,6 +28,10 @@ import simidIabSurveyXml from "./scenarios/simid-iab-survey.xml?raw";
 import simidIabTestersNonlinearXml from "./scenarios/simid-iab-testers-nonlinear.xml?raw";
 import simidProtocolExplorerXml from "./scenarios/simid-protocol-explorer.xml?raw";
 import skippableLinearXml from "./scenarios/skippable-linear.xml?raw";
+import ctvPortfolio2PauseXml from "./scenarios/ctv-portfolio-2-pause.xml?raw";
+import ctvPortfolio2OverlaySimidXml from "./scenarios/ctv-portfolio-2-overlay-simid.xml?raw";
+import ctvPortfolio3PauseXml from "./scenarios/ctv-portfolio-3-pause.xml?raw";
+import ctvPortfolio3OverlaySimidXml from "./scenarios/ctv-portfolio-3-overlay-simid.xml?raw";
 import vast44InsceneXml from "./scenarios/vast44-inscene.xml?raw";
 import vast44InsceneSimidXml from "./scenarios/vast44-inscene-simid.xml?raw";
 import vast44OverlaySimidXml from "./scenarios/vast44-overlay-simid.xml?raw";
@@ -103,7 +107,7 @@ const COLLAPSED_SECTIONS: Record<SectionId, boolean> = {
   export: false,
 };
 type ComplianceProfileId = "strict-iab" | "ctv-safe" | "ssai-safe" | "legacy-player";
-type ScenarioGroupId = "core" | "creative-types" | "simid" | "measurement" | "ctv-ssai" | "vast-4-4";
+type ScenarioGroupId = "core" | "creative-types" | "simid" | "measurement" | "ctv-ssai" | "ctv-portfolio";
 type ScenarioActionFilter = "all" | ActionMode;
 
 interface RunRequest {
@@ -643,10 +647,58 @@ const SCENARIO_PRESETS: readonly ScenarioPreset[] = [
     payload: closedCaptionsXml,
   },
   {
+    id: "ctv-portfolio-2-pause",
+    label: "2.0 pause (extension)",
+    description:
+      "Pause on VAST 2.0: NonLinear static fallback plus InLine Extension type=\"ctv_ad_portfolio\" with plcmt 5, QR, and MediaFiles.",
+    groupId: "ctv-portfolio",
+    versionLabel: "VAST 2.0",
+    focusAreas: ["pause", "portfolio", "extension", "qr", "adcom"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: ctvPortfolio2PauseXml,
+  },
+  {
+    id: "ctv-portfolio-2-overlay-simid",
+    label: "2.0 overlay SIMID (extension)",
+    description:
+      "Overlay on VAST 2.0: SIMID InteractiveCreativeFile lives in the ctv_ad_portfolio container, not in native 4.4 NonLinear MediaFiles.",
+    groupId: "ctv-portfolio",
+    versionLabel: "VAST 2.0",
+    focusAreas: ["overlay", "simid", "portfolio", "extension", "adcom"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: ctvPortfolio2OverlaySimidXml,
+  },
+  {
+    id: "ctv-portfolio-3-pause",
+    label: "3.0 pause (extension)",
+    description:
+      "Same CTV Ad Portfolio extension container as 2.0, on a VAST 3.0 root. Not the 4.4 native NonLinear MediaFiles path.",
+    groupId: "ctv-portfolio",
+    versionLabel: "VAST 3.0",
+    focusAreas: ["pause", "portfolio", "extension", "qr", "adcom"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: ctvPortfolio3PauseXml,
+  },
+  {
+    id: "ctv-portfolio-3-overlay-simid",
+    label: "3.0 overlay SIMID (extension)",
+    description:
+      "VAST 3.0 overlay using Extension type=\"ctv_ad_portfolio\" for AdCOM signals, Duration, MediaFiles, and SIMID.",
+    groupId: "ctv-portfolio",
+    versionLabel: "VAST 3.0",
+    focusAreas: ["overlay", "simid", "portfolio", "extension", "adcom"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: ctvPortfolio3OverlaySimidXml,
+  },
+  {
     id: "vast44-pause-static",
-    label: "Pause static",
+    label: "4.4 pause static",
     description: "CTV pause placement: static image, AdChoices icon, QR geometry, and AdCOM pause signals on the 4.4 draft.",
-    groupId: "vast-4-4",
+    groupId: "ctv-portfolio",
     versionLabel: "VAST 4.4 (beta)",
     focusAreas: ["pause", "qr", "adcom", "nonlinear"],
     sourceMode: "xml",
@@ -655,9 +707,9 @@ const SCENARIO_PRESETS: readonly ScenarioPreset[] = [
   },
   {
     id: "vast44-pause-video",
-    label: "Pause video",
+    label: "4.4 pause video",
     description: "Pause ad that delivers MP4 through NonLinear MediaFiles, the 4.4 content model the JPEG-era spec did not have.",
-    groupId: "vast-4-4",
+    groupId: "ctv-portfolio",
     versionLabel: "VAST 4.4 (beta)",
     focusAreas: ["pause", "mediafiles", "adcom"],
     sourceMode: "xml",
@@ -666,9 +718,9 @@ const SCENARIO_PRESETS: readonly ScenarioPreset[] = [
   },
   {
     id: "vast44-screensaver",
-    label: "Screensaver",
+    label: "4.4 screensaver",
     description: "Fullscreen screensaver still with plcmt 6, playbackmethod 11, and static visual attr 21.",
-    groupId: "vast-4-4",
+    groupId: "ctv-portfolio",
     versionLabel: "VAST 4.4 (beta)",
     focusAreas: ["screensaver", "adcom", "nonlinear"],
     sourceMode: "xml",
@@ -677,9 +729,9 @@ const SCENARIO_PRESETS: readonly ScenarioPreset[] = [
   },
   {
     id: "vast44-overlay-simid",
-    label: "Overlay SIMID",
+    label: "4.4 overlay SIMID",
     description: "Preferred 4.4 overlay: SIMID InteractiveCreativeFile inside NonLinear MediaFiles, Duration, custom click, and QR.",
-    groupId: "vast-4-4",
+    groupId: "ctv-portfolio",
     versionLabel: "VAST 4.4 (beta)",
     focusAreas: ["overlay", "simid", "qr", "adcom"],
     sourceMode: "xml",
@@ -688,9 +740,9 @@ const SCENARIO_PRESETS: readonly ScenarioPreset[] = [
   },
   {
     id: "vast44-squeezeback",
-    label: "Squeezeback",
+    label: "4.4 squeezeback",
     description: "L-bar squeezeback with Duration on NonLinear and AdCOM plcmt 8 / pos 16.",
-    groupId: "vast-4-4",
+    groupId: "ctv-portfolio",
     versionLabel: "VAST 4.4 (beta)",
     focusAreas: ["squeezeback", "adcom", "nonlinear"],
     sourceMode: "xml",
@@ -699,9 +751,9 @@ const SCENARIO_PRESETS: readonly ScenarioPreset[] = [
   },
   {
     id: "vast44-inscene",
-    label: "In-scene",
+    label: "4.4 in-scene",
     description: "In-scene video insert through NonLinear MediaFiles with plcmt 9. pos is not applicable for this format.",
-    groupId: "vast-4-4",
+    groupId: "ctv-portfolio",
     versionLabel: "VAST 4.4 (beta)",
     focusAreas: ["in-scene", "mediafiles", "adcom"],
     sourceMode: "xml",
@@ -710,9 +762,9 @@ const SCENARIO_PRESETS: readonly ScenarioPreset[] = [
   },
   {
     id: "vast44-pause-simid",
-    label: "Pause SIMID",
+    label: "4.4 pause SIMID",
     description: "Pause placement with SIMID InteractiveCreativeFile inside NonLinear MediaFiles. plcmt 5, playbackmethod 8.",
-    groupId: "vast-4-4",
+    groupId: "ctv-portfolio",
     versionLabel: "VAST 4.4 (beta)",
     focusAreas: ["pause", "simid", "adcom", "nonlinear"],
     sourceMode: "xml",
@@ -721,9 +773,9 @@ const SCENARIO_PRESETS: readonly ScenarioPreset[] = [
   },
   {
     id: "vast44-screensaver-simid",
-    label: "Screensaver SIMID",
+    label: "4.4 screensaver SIMID",
     description: "Idle-screen SIMID brand hold. plcmt 6, playbackmethod 11, interactive attr 23.",
-    groupId: "vast-4-4",
+    groupId: "ctv-portfolio",
     versionLabel: "VAST 4.4 (beta)",
     focusAreas: ["screensaver", "simid", "adcom"],
     sourceMode: "xml",
@@ -732,9 +784,9 @@ const SCENARIO_PRESETS: readonly ScenarioPreset[] = [
   },
   {
     id: "vast44-squeezeback-simid",
-    label: "Squeezeback SIMID",
+    label: "4.4 squeezeback SIMID",
     description: "L-bar SIMID around squeezed content. plcmt 8, pos 16.",
-    groupId: "vast-4-4",
+    groupId: "ctv-portfolio",
     versionLabel: "VAST 4.4 (beta)",
     focusAreas: ["squeezeback", "simid", "adcom"],
     sourceMode: "xml",
@@ -743,9 +795,9 @@ const SCENARIO_PRESETS: readonly ScenarioPreset[] = [
   },
   {
     id: "vast44-inscene-simid",
-    label: "In-scene SIMID",
+    label: "4.4 in-scene SIMID",
     description: "In-scene hotspot SIMID over NonLinear video. plcmt 9.",
-    groupId: "vast-4-4",
+    groupId: "ctv-portfolio",
     versionLabel: "VAST 4.4 (beta)",
     focusAreas: ["in-scene", "simid", "adcom"],
     sourceMode: "xml",
@@ -781,9 +833,10 @@ const SCENARIO_GROUPS: readonly ScenarioGroupDefinition[] = [
     description: "Identity, mezzanine, and captioning samples for modern distribution workflows.",
   },
   {
-    id: "vast-4-4",
-    label: "VAST 4.4 beta",
-    description: "CTV Ad Portfolio on the 4.4 draft: pause, screensaver, overlay, squeezeback, and in-scene, static, video, and SIMID. Menu/tile is Native; see SIMID menu tiles.",
+    id: "ctv-portfolio",
+    label: "CTV Ad Portfolio",
+    description:
+      "Same five formats, two XML shapes. VAST 2.0 and 3.0 use Extension type=\"ctv_ad_portfolio\". VAST 4.4 uses native NonLinear MediaFiles plus AdCOM extensions. Menu/tile is Native; see SIMID menu tiles.",
   },
 ];
 
@@ -3504,7 +3557,7 @@ function App() {
                 <span className="scenario-toggle-note">
                   {activeScenario !== null
                     ? `Active: ${activeScenario.label}`
-                    : `${String(SCENARIO_PRESETS.length)} presets across baseline, creative, SIMID, measurement, CTV, and VAST 4.4 beta coverage`}
+                    : `${String(SCENARIO_PRESETS.length)} presets across baseline, creative, SIMID, measurement, CTV, and CTV Ad Portfolio`}
                 </span>
               </button>
 
@@ -4080,6 +4133,7 @@ function App() {
                     studioExpanded={simidStudioOpen}
                     simidEnabled={playerProfile.simid !== "off"}
                     simidVersion={simidVersionForProfile(playerProfile)}
+                    playerProfile={playerProfile}
                     surfaces={creativeSurfaces}
                     videoRef={runnerVideoRef}
                   >

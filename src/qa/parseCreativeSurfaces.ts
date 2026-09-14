@@ -82,7 +82,10 @@ function firstVideoUrl(root: ParentNode, selector: string): string | null {
 }
 
 function readPlcmt(doc: Document): number | null {
-  const node = doc.querySelector("Extension[type='plcmt'] plcmt") ?? doc.querySelector("Extension[type='plcmt']");
+  const node =
+    doc.querySelector("Extension[type='plcmt'] plcmt") ??
+    doc.querySelector("Extension[type='plcmt']") ??
+    doc.querySelector("Extension[type='ctv_ad_portfolio'] plcmt");
   const value = Number.parseInt(text(node), 10);
   return Number.isFinite(value) ? value : null;
 }
@@ -182,21 +185,25 @@ export function parseCreativeSurfaces(xml: string | null): CreativeSurfaces {
       return;
     }
 
+    const nonlinear = doc.querySelector("NonLinear");
+    const inPortfolio = Boolean(icf.closest("Extension[type='ctv_ad_portfolio']"));
+    const role: OverlayRole = inPortfolio || !hasLinear ? "simid-nonlinear" : "simid-linear";
+
     overlays.push({
       id: `icf-${String(index)}`,
-      role: isSimid(attr(icf, "apiFramework")) ? "simid-linear" : "simid-linear",
-      width: "",
-      height: "",
+      role,
+      width: attr(nonlinear, "width"),
+      height: attr(nonlinear, "height"),
       mimeType: attr(icf, "type") || "text/html",
       apiFramework: attr(icf, "apiFramework") || null,
       variableDuration: attr(icf, "variableDuration") || null,
       skipoffsetSec: parseSkipoffset(attr(icf.closest("Linear"), "skipoffset")) ?? linearSkipoffsetSec,
       url: text(icf),
-      clickThroughUrl: text(doc.querySelector("ClickThrough")) || null,
+      clickThroughUrl: clickThroughFrom(nonlinear ?? doc.documentElement),
       adParameters: adParameters || null,
       resourceKind: "iframe",
-      layout: "overlay",
-      mediaFileUrl: firstVideoUrl(icf.closest("Linear") ?? doc, "MediaFile"),
+      layout: nonlinear ? layoutFor(nonlinear, hasLinear, plcmt) : layoutFor(doc.documentElement, hasLinear, plcmt),
+      mediaFileUrl: firstVideoUrl(icf.closest("Linear") ?? icf.closest("Extension") ?? doc, "MediaFile"),
     });
   });
 
