@@ -2,7 +2,7 @@
 <VAST version="4.1">
   <Ad id="click-tracking-1" sequence="1">
     <InLine>
-      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdSystem version="1.0">vast-tester</AdSystem>
       <AdServingId>click-tracking-1</AdServingId>
       <AdTitle>click tracking scenario</AdTitle>
       <Impression><![CDATA[https://example.com/impression]]></Impression>

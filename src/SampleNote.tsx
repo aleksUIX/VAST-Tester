@@ -17,7 +17,7 @@ export function SampleNote() {
   return (
     <p className="sample-note">
       {optedOut
-        ? "This browser is not sending tags to vastlint."
+        ? "This browser is not sending tags."
         : "Validation still runs in your browser. Tags you paste or fetch may be stored (device IDs and IPs stripped from the XML). Country, network owner, and same-tab grouping may be kept. Built-in samples are not sent. "}
       {branding.privacyUrl ? (
         <a href={branding.privacyUrl} rel="noreferrer" target="_blank">

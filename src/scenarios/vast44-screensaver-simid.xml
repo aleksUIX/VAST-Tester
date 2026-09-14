@@ -2,7 +2,7 @@
 <VAST version="4.4">
   <Ad id="vast44-screensaver-simid-1">
     <InLine>
-      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdSystem version="1.0">vast-tester</AdSystem>
       <AdServingId>vast44-screensaver-simid-1</AdServingId>
       <AdTitle>VAST 4.4 screensaver SIMID</AdTitle>
       <Error><![CDATA[https://example.com/error?code=%%ERRORCODE%%]]></Error>

@@ -1,7 +1,7 @@
 {
-  "name": "vast-tester-aleksuix",
+  "name": "vast-tester",
   "version": "0.1.0",
-  "description": "Modern VAST tester built on top of published vastlint packages.",
+  "description": "IAB Tech Lab VAST Tester.",
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
@@ -11,9 +11,6 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "cf:login": "npx wrangler login",
-    "cf:pages:create": "npx wrangler pages project create iab-tech-lab-vast-tester --production-branch=master",
-    "deploy:pages": "npm run build && npx wrangler pages deploy dist --project-name=iab-tech-lab-vast-tester --branch=master",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -2,7 +2,7 @@
 <VAST version="4.1">
   <Ad id="viewable-impression-1" sequence="1">
     <InLine>
-      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdSystem version="1.0">vast-tester</AdSystem>
       <AdServingId>viewable-impression-1</AdServingId>
       <AdTitle>viewable impression scenario</AdTitle>
       <Impression><![CDATA[https://example.com/impression]]></Impression>

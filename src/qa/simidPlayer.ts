@@ -541,7 +541,7 @@ export class SimidPlayer {
       skippableState: "playerHandles",
       skipoffset: this.skipOffsetSec,
       version: this.protocolVersion,
-      siteId: "iab-tech-lab-vast-tester",
+      siteId: "vast-tester",
       siteUrl: typeof location === "object" ? location.host : "",
       appId: "",
       muted: video?.muted ?? true,

@@ -24,32 +24,28 @@ export interface Branding {
 }
 
 export const branding: Branding = {
-  appTitle: "IAB-style VAST tester",
+  appTitle: "VAST Tester",
   lede:
-    "SIMID studio and IAB sample creatives. Independent vastlint-powered rebuild of the legacy IAB Tech Lab VAST Tester. Not affiliated with IAB Tech Lab, and not the official IAB VAST Tag Validator. Validation, deterministic repair, wrapper inspection, playback and tracking QA, and partner-shareable reports across VAST 2.0-4.4.",
+    "Validate VAST tags, resolve wrappers, and inspect playback, tracking, SIMID, and OM SDK behavior across VAST 2.0-4.4.",
   navLinks: [
-    { href: "https://vastlint.org/docs/rules", label: "Rule catalog" },
-    { href: "https://vastlint.org/docs/common-vast-errors", label: "Common VAST errors" },
-    { href: "https://github.com/aleksUIX/vastlint/issues/new", label: "Report an issue" },
-    { href: "https://github.com/aleksUIX/vastlint/discussions", label: "Start a discussion" },
+    { href: "https://iabtechlab.com/standards/vast/", label: "VAST spec" },
+    { href: "https://github.com/InteractiveAdvertisingBureau/VAST", label: "VAST on GitHub" },
+    { href: "https://github.com/IABTechLab/VAST-Tester/issues", label: "Report an issue" },
   ],
-  feedbackEmail: "aleks@vastlint.org",
-  issuesUrl: "https://github.com/aleksUIX/vastlint/issues/new",
-  discussionsUrl: "https://github.com/aleksUIX/vastlint/discussions",
-  ruleDocsBase: "https://vastlint.org/docs/rules",
-  commonErrorsUrl: "https://vastlint.org/docs/common-vast-errors",
-  privacyUrl: "https://vastlint.org/privacy/",
-  termsUrl: "https://vastlint.org/terms/",
-  collectSamples: true,
-  sampleEndpoint: "https://vastlint.org/api/samples",
-  vastProxyEndpoint: "https://vastlint.org/api/vast-proxy",
-  scenarioFallbackOrigin: "https://iab-tech-lab-vast-tester.vastlint.org",
-  fixtureHosts: ["example.com", "iab-tech-lab-vast-tester.vastlint.org"],
-  omidPartnerName: "vastlint VAST Tester",
-  ruleDocsUrl(ruleId: string) {
-    const encoded = encodeURIComponent(ruleId);
-    if (ruleId.startsWith("SIMID-")) return `https://vastlint.org/docs/simid-rules/${encoded}/`;
-    if (ruleId.startsWith("VPAID-")) return `https://vastlint.org/docs/vpaid-rules/${encoded}/`;
-    return `https://vastlint.org/docs/rules/${encoded}/`;
+  feedbackEmail: null,
+  issuesUrl: "https://github.com/IABTechLab/VAST-Tester/issues",
+  discussionsUrl: null,
+  ruleDocsBase: null,
+  commonErrorsUrl: null,
+  privacyUrl: null,
+  termsUrl: null,
+  collectSamples: false,
+  sampleEndpoint: null,
+  vastProxyEndpoint: null,
+  scenarioFallbackOrigin: null,
+  fixtureHosts: ["example.com"],
+  omidPartnerName: "VAST Tester",
+  ruleDocsUrl() {
+    return null;
   },
 };

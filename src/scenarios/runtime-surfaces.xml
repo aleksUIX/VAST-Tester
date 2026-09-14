@@ -2,7 +2,7 @@
 <VAST version="4.1">
   <Ad id="runtime-surfaces-1" sequence="1">
     <InLine>
-      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdSystem version="1.0">vast-tester</AdSystem>
       <AdServingId>runtime-surfaces-1</AdServingId>
       <AdTitle>runtime surfaces scenario</AdTitle>
       <Error><![CDATA[https://example.com/error?code=%%ERRORCODE%%&cb=[CACHEBUSTING]]]></Error>
@@ -20,7 +20,7 @@
               <Tracking event="complete"><![CDATA[https://example.com/complete]]></Tracking>
             </TrackingEvents>
             <Icons>
-              <Icon program="vastlint-demo" width="80" height="40" xPosition="left" yPosition="top" offset="00:00:02" duration="00:00:05">
+              <Icon program="vast-tester" width="80" height="40" xPosition="left" yPosition="top" offset="00:00:02" duration="00:00:05">
                 <StaticResource creativeType="image/png"><![CDATA[https://dummyimage.com/80x40/e7e7e7/111111.png&text=ICON]]></StaticResource>
                 <IconClickThrough><![CDATA[https://example.com/icon-click]]></IconClickThrough>
               </Icon>
@@ -42,7 +42,7 @@
         </Creative>
       </Creatives>
       <AdVerifications>
-        <Verification vendor="vastlint.org-omid-demo">
+        <Verification vendor="iabtechlab.com-omid">
           <JavaScriptResource apiFramework="omid" browserOptional="true"><![CDATA[https://example.com/omid.js]]></JavaScriptResource>
           <VerificationParameters><![CDATA[mode=test]]></VerificationParameters>
         </Verification>

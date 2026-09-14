@@ -2,7 +2,7 @@
 <VAST version="4.1">
   <Ad id="companion-banner-1" sequence="1">
     <InLine>
-      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdSystem version="1.0">vast-tester</AdSystem>
       <AdServingId>companion-banner-1</AdServingId>
       <AdTitle>companion banner scenario</AdTitle>
       <Impression><![CDATA[https://example.com/impression]]></Impression>

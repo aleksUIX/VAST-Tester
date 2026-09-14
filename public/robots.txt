@@ -1,4 +1,2 @@
 User-agent: *
 Allow: /
-
-Sitemap: https://iab-tech-lab-vast-tester.vastlint.org/sitemap.xml

@@ -2,7 +2,7 @@
 <VAST version="4.1">
   <Ad id="ad-identity-1" sequence="1">
     <InLine>
-      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdSystem version="1.0">vast-tester</AdSystem>
       <AdServingId>ad-identity-1</AdServingId>
       <AdTitle>ad identity scenario</AdTitle>
       <Impression><![CDATA[https://example.com/impression]]></Impression>

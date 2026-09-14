@@ -2,7 +2,7 @@
 <VAST version="4.4">
   <Ad id="vast44-pause-static-1">
     <InLine>
-      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdSystem version="1.0">vast-tester</AdSystem>
       <AdServingId>vast44-pause-static-1</AdServingId>
       <AdTitle>VAST 4.4 pause static</AdTitle>
       <Error><![CDATA[https://example.com/error?code=%%ERRORCODE%%]]></Error>

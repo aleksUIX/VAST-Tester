@@ -2,7 +2,7 @@
 <VAST version="4.1">
   <Ad id="ad-verification-1" sequence="1">
     <InLine>
-      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdSystem version="1.0">vast-tester</AdSystem>
       <AdServingId>ad-verification-1</AdServingId>
       <AdTitle>ad verification scenario</AdTitle>
       <Error><![CDATA[https://example.com/error?code=%%ERRORCODE%%]]></Error>
@@ -32,7 +32,7 @@
           <TrackingEvents>
             <Tracking event="verificationNotExecuted"><![CDATA[https://example.com/verification-not-executed?reason=[REASON]]]></Tracking>
           </TrackingEvents>
-          <VerificationParameters><![CDATA[mode=test&vendor=vastlint-demo]]></VerificationParameters>
+          <VerificationParameters><![CDATA[mode=test&vendor=vast-tester]]></VerificationParameters>
         </Verification>
       </AdVerifications>
     </InLine>

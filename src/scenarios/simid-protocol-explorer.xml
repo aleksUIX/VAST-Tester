@@ -2,7 +2,7 @@
 <VAST version="4.1">
   <Ad id="simid-protocol-explorer-1" sequence="1">
     <InLine>
-      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdSystem version="1.0">vast-tester</AdSystem>
       <AdServingId>simid-protocol-explorer-1</AdServingId>
       <AdTitle>SIMID protocol explorer</AdTitle>
       <Error><![CDATA[https://example.com/error?code=%%ERRORCODE%%]]></Error>

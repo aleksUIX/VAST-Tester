@@ -2,7 +2,7 @@
 <VAST version="4.1">
   <Ad id="simid-iab-survey-1" sequence="1">
     <InLine>
-      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdSystem version="1.0">vast-tester</AdSystem>
       <AdServingId>simid-iab-survey-1</AdServingId>
       <AdTitle>IAB SIMID survey</AdTitle>
       <Error><![CDATA[https://example.com/error?code=%%ERRORCODE%%]]></Error>

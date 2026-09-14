@@ -2,7 +2,7 @@
 <VAST version="4.1">
   <Ad id="simid-interactive-poll-1" sequence="1">
     <InLine>
-      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdSystem version="1.0">vast-tester</AdSystem>
       <AdServingId>simid-interactive-poll-1</AdServingId>
       <AdTitle>SIMID interactive poll</AdTitle>
       <Error><![CDATA[https://example.com/error?code=%%ERRORCODE%%]]></Error>

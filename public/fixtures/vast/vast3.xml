@@ -38,7 +38,7 @@
       <Extensions>
         <Extension type="AdVerifications">
           <AdVerifications>
-            <Verification vendor="vastlint.org-omid-demo">
+            <Verification vendor="iabtechlab.com-omid">
               <JavaScriptResource apiFramework="omid">
                 <![CDATA[/fixtures/omid/omid-validation-verification-script-v1.js]]>
               </JavaScriptResource>

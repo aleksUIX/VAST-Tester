@@ -2,7 +2,7 @@
 <VAST version="2.0">
   <Ad id="nonlinear-overlay-1">
     <InLine>
-      <AdSystem>vastlint-demo</AdSystem>
+      <AdSystem>vast-tester</AdSystem>
       <AdTitle>non-linear overlay scenario</AdTitle>
       <Impression><![CDATA[https://example.com/impression]]></Impression>
       <Creatives>

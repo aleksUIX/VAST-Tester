@@ -74,65 +74,21 @@ export function FindingsFeedback({
 }
 
 export function AppFooter() {
-  const mailHref = feedbackMailto("VAST Tester feedback");
-
   return (
     <footer className="app-footer">
       <p>
-        Validation, repair, and wrapper resolution run on{" "}
-        <a href="https://vastlint.org" rel="noreferrer" target="_blank">
-          vastlint
-        </a>
-        , an open-source VAST validation engine with rules derived from published IAB Tech Lab specs and XSD schemas.
-        This tester is an independent frontend for that engine, not an official IAB Tech Lab tool. See{" "}
-        <a href="https://vastlint.org" rel="noreferrer" target="_blank">
-          vastlint.org
-        </a>{" "}
-        for the hosted validator, CLI, and native Go, Rust, Python, and npm packages. Found a wrong result or want a
-        new rule?{" "}
+        IAB Tech Lab VAST Tester. Validate VAST documents, resolve wrappers, and inspect playback, tracking, SIMID, and
+        OM SDK behavior.
         {branding.issuesUrl ? (
-          <a href={branding.issuesUrl} rel="noreferrer noopener" target="_blank">
-            Report an issue
-          </a>
-        ) : null}
-        {branding.discussionsUrl ? (
           <>
             {" "}
-            or{" "}
-            <a href={branding.discussionsUrl} rel="noreferrer noopener" target="_blank">
-              start a discussion
-            </a>{" "}
-            on the vastlint GitHub repo.
-          </>
-        ) : null}
-        {mailHref && branding.feedbackEmail ? (
-          <>
-            {" "}
-            No GitHub account? Email <a href={mailHref}>{branding.feedbackEmail}</a> instead. Every report is read by
-            the person who maintains the tool.
+            <a href={branding.issuesUrl} rel="noreferrer noopener" target="_blank">
+              Report an issue
+            </a>
+            .
           </>
         ) : null}
       </p>
-      {branding.collectSamples ? (
-        <p>
-          Tags you paste or fetch on this tester may be stored (device IDs and IPs stripped) so vastlint can improve its
-          rules. Built-in samples are not sent. See{" "}
-          {branding.privacyUrl ? (
-            <a href={branding.privacyUrl} rel="noreferrer" target="_blank">
-              vastlint.org/privacy
-            </a>
-          ) : null}
-          {branding.termsUrl ? (
-            <>
-              {" · "}
-              <a href={branding.termsUrl} rel="noreferrer" target="_blank">
-                terms
-              </a>
-            </>
-          ) : null}
-          . Pasting a tag licenses us to store it and probe URLs in it for development.
-        </p>
-      ) : null}
     </footer>
   );
 }
