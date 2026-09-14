@@ -1,0 +1,22 @@
+{
+  "id": "destination/generic-ott",
+  "display_name": "Generic OTT",
+  "summary": "Microsoft Invest OTT floor: VAST, MP4, at least 2,000 kbps, at least 720p, 15 or 30s, no VPAID.",
+  "source_level": "official_vendor",
+  "docs": "https://learn.microsoft.com/en-us/xandr/invest/ott-video-creative-specifications",
+  "contract": "generic",
+  "forbid_vpaid": true,
+  "forbid_qr": false,
+  "match": "any",
+  "duration_tolerance_sec": 0.5,
+  "renditions": [
+    {
+      "id": "ott-floor",
+      "file_types": ["video/mp4"],
+      "min_width": 1280,
+      "min_height": 720,
+      "bitrate": { "min_kbps": 2000 },
+      "duration_seconds": [15, 30]
+    }
+  ]
+}

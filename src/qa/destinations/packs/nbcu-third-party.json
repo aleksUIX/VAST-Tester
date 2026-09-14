@@ -1,0 +1,57 @@
+{
+  "id": "destination/nbcu-third-party",
+  "display_name": "NBCU (third-party)",
+  "summary": "Microsoft Monetize third-party set. High, med, low, and mezzanine are all required. Extra files are rejected.",
+  "source_level": "official_vendor",
+  "docs": "https://learn.microsoft.com/en-us/xandr/monetize/creative-ctv-guidelines-and-specifications",
+  "contract": "third_party",
+  "forbid_vpaid": true,
+  "forbid_qr": false,
+  "match": "all",
+  "max_files": 4,
+  "duration_tolerance_sec": 0.5,
+  "renditions": [
+    {
+      "id": "high",
+      "required": true,
+      "file_types": ["video/mp4"],
+      "resolutions": [
+        { "width": 720, "height": 480 },
+        { "width": 1280, "height": 720 },
+        { "width": 1920, "height": 1080 }
+      ],
+      "bitrate": { "min_kbps": 3250, "max_kbps": 5000 },
+      "duration_seconds": [6, 15, 30, 45, 60]
+    },
+    {
+      "id": "med",
+      "required": true,
+      "file_types": ["video/mp4"],
+      "resolutions": [
+        { "width": 640, "height": 480 },
+        { "width": 960, "height": 540 }
+      ],
+      "bitrate": { "min_kbps": 1000, "max_kbps": 1500 },
+      "duration_seconds": [6, 15, 30, 45, 60]
+    },
+    {
+      "id": "low",
+      "required": true,
+      "file_types": ["video/mp4"],
+      "resolutions": [
+        { "width": 640, "height": 360 },
+        { "width": 416, "height": 234 }
+      ],
+      "bitrate": { "min_kbps": 340, "max_kbps": 460 },
+      "duration_seconds": [6, 15, 30, 45, 60]
+    },
+    {
+      "id": "mezzanine",
+      "required": true,
+      "file_types": ["video/mp4"],
+      "resolutions": [{ "width": 1920, "height": 1080 }],
+      "bitrate": { "min_kbps": 15000, "max_kbps": 30000 },
+      "duration_seconds": [6, 15, 30, 45, 60]
+    }
+  ]
+}

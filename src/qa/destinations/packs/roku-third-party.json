@@ -1,0 +1,41 @@
+{
+  "id": "destination/roku-third-party",
+  "display_name": "Roku (third-party)",
+  "summary": "Microsoft Monetize third-party renditions. High 1,200–2,100, med 700–1,200, low 360–500 kbps. All three required. 16:9 MP4, 6 to 60 seconds.",
+  "source_level": "official_vendor",
+  "docs": "https://learn.microsoft.com/en-us/xandr/monetize/creative-ctv-guidelines-and-specifications",
+  "contract": "third_party",
+  "forbid_vpaid": true,
+  "forbid_qr": false,
+  "match": "all",
+  "duration_tolerance_sec": 0.5,
+  "renditions": [
+    {
+      "id": "high",
+      "required": true,
+      "file_types": ["video/mp4"],
+      "aspect_ratio": "16:9",
+      "bitrate": { "min_kbps": 1200, "max_kbps": 2100 },
+      "duration_min_seconds": 6,
+      "duration_max_seconds": 60
+    },
+    {
+      "id": "med",
+      "required": true,
+      "file_types": ["video/mp4"],
+      "aspect_ratio": "16:9",
+      "bitrate": { "min_kbps": 700, "max_kbps": 1200 },
+      "duration_min_seconds": 6,
+      "duration_max_seconds": 60
+    },
+    {
+      "id": "low",
+      "required": true,
+      "file_types": ["video/mp4"],
+      "aspect_ratio": "16:9",
+      "bitrate": { "min_kbps": 360, "max_kbps": 500 },
+      "duration_min_seconds": 6,
+      "duration_max_seconds": 60
+    }
+  ]
+}

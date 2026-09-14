@@ -14,7 +14,9 @@
     "cf:login": "npx wrangler login",
     "cf:pages:create": "npx wrangler pages project create iab-tech-lab-vast-tester --production-branch=main",
     "deploy:pages": "npm run build && npx wrangler pages deploy dist --project-name=iab-tech-lab-vast-tester --branch=main",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck:e2e": "tsc -p tsconfig.e2e.json --noEmit",
+    "test:e2e": "playwright test --project=smoke"
   },
   "dependencies": {
     "jszip": "^3.10.1",
@@ -25,6 +27,7 @@
     "vastlint-react": "0.13.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.0.4",

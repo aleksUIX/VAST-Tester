@@ -1044,6 +1044,36 @@ button:not(:disabled).ghost:hover {
   line-height: 1.6;
 }
 
+.destination-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin: 0 0 12px;
+}
+
+.destination-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: var(--small);
+}
+
+.destination-select select,
+.destination-toolbar .omid-access select {
+  min-width: 220px;
+}
+
+.destination-columns {
+  grid-template-columns: minmax(160px, 0.7fr) minmax(0, 1.4fr);
+}
+
+.destination-panel .table-cell strong {
+  display: inline-block;
+  margin-left: 8px;
+}
+
 /* ---------- findings ---------- */
 
 .findings-filter-row {

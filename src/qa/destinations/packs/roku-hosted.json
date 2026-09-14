@@ -1,0 +1,22 @@
+{
+  "id": "destination/roku-hosted",
+  "display_name": "Roku (hosted)",
+  "summary": "Microsoft Monetize hosted upload: MP4, at least 2,100 kbps, 16:9, 6 to 60 seconds. Not the third-party high band.",
+  "source_level": "official_vendor",
+  "docs": "https://learn.microsoft.com/en-us/xandr/monetize/creative-ctv-guidelines-and-specifications",
+  "contract": "hosted",
+  "forbid_vpaid": true,
+  "forbid_qr": false,
+  "match": "any",
+  "duration_tolerance_sec": 0.5,
+  "renditions": [
+    {
+      "id": "hosted",
+      "file_types": ["video/mp4"],
+      "aspect_ratio": "16:9",
+      "bitrate": { "min_kbps": 2100 },
+      "duration_min_seconds": 6,
+      "duration_max_seconds": 60
+    }
+  ]
+}

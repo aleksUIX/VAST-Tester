@@ -17,7 +17,7 @@ The product is the VAST tester:
 - https://vastlint.org/tester/
 - https://iab-tech-lab-vast-tester.vastlint.org/
 
-The tester UI already has two extra lenses. Add a third:
+The tester UI has three extra lenses:
 
 | Axis | What it is | What it is not |
 |---|---|---|
@@ -36,13 +36,13 @@ JSON, pixellint-shaped: `id`, `display_name`, `source_level: official_vendor`, c
 
 First cut is declared XML only:
 
-- `MediaFile` `bitrate` / `minBitrate` / `maxBitrate`
-- `width`, `height`, `type`
+- `MediaFile` and `Mezzanine` `bitrate` / `minBitrate` / `maxBitrate`
+- `width`, `height`, `type`, `codec` when present
 - Linear `Duration`
 - `apiFramework` VPAID
 - QR-like Icon, Companion, or CreativeExtension when the pack forbids QR
 
-Hosted vs third-party are different packs. Hosted Roku is ≥2,100 kbps. Third-party Roku high is 1,200–2,100 kbps. Mixing them is a false fail.
+Values at or above 100,000 are treated as bits/sec and flagged `DEST-bitrate-unit`. Hosted vs third-party are different packs. Hosted Roku is ≥2,100 kbps. Third-party Roku high is 1,200–2,100 kbps. Mixing them is a false fail.
 
 ## Layer 1: declared tag
 
@@ -64,7 +64,7 @@ Rule IDs in a `DEST-*` prefix so they do not collide with the VAST catalog. They
 
 ## Layer 2: probe the file
 
-Later. The tester already fetches media for playback. Declared `bitrate="2000"` can lie. Probe is a second pass, behind an explicit control. Do not block layer 1 on it. Do not claim the encode without reading the file.
+HEAD / Range size vs Linear Duration. Warning `DEST-bitrate-probe-mismatch` when the fetched bytes imply a bitrate far from the declared attribute. Not an encode probe. Demo CDN hosts are skipped. Does not change layer 1 pass/fail.
 
 ## UI
 
@@ -83,8 +83,8 @@ Export includes the pack id and the cited URL.
 
 ## Ship order
 
-1. Pack format + Destination dropdown + generic OTT + Netflix hosted + Roku third-party high
-2. ESPN, NBCU, Hulu packs, including NBCU four-file set
-3. QR scan on packs that forbid it
-4. Optional probe of the fetched media
+1. Shipped: pack format, Destination dropdown, generic OTT, Netflix hosted, Roku hosted and third-party
+2. Shipped: ESPN, NBCU, Hulu, including NBCU four-file set
+3. Shipped: QR scan on packs that forbid it
+4. Shipped: size probe vs declared bitrate (warning). Mezzanine nodes. Bitrate unit. H.264 codec family when codec is declared.
 5. Optional CLI `--destination` for allowlisted CI. Not default `check`. Not grpc.

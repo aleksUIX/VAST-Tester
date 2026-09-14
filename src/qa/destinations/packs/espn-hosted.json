@@ -1,0 +1,24 @@
+{
+  "id": "destination/espn-hosted",
+  "display_name": "ESPN (hosted)",
+  "summary": "Microsoft Monetize hosted upload: MP4, at least 2,000 kbps, 720p or 1080p, 15 or 30 seconds.",
+  "source_level": "official_vendor",
+  "docs": "https://learn.microsoft.com/en-us/xandr/monetize/creative-ctv-guidelines-and-specifications",
+  "contract": "hosted",
+  "forbid_vpaid": true,
+  "forbid_qr": false,
+  "match": "any",
+  "duration_tolerance_sec": 0.5,
+  "renditions": [
+    {
+      "id": "hosted",
+      "file_types": ["video/mp4"],
+      "resolutions": [
+        { "width": 1280, "height": 720 },
+        { "width": 1920, "height": 1080 }
+      ],
+      "bitrate": { "min_kbps": 2000 },
+      "duration_seconds": [15, 30]
+    }
+  ]
+}

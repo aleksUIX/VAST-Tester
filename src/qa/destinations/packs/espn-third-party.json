@@ -1,0 +1,37 @@
+{
+  "id": "destination/espn-third-party",
+  "display_name": "ESPN (third-party)",
+  "summary": "Microsoft Monetize third-party renditions. High 2,000–5,000 kbps at 720p or 1080p. Low under 1,500 kbps. Both required. 15 or 30 seconds.",
+  "source_level": "official_vendor",
+  "docs": "https://learn.microsoft.com/en-us/xandr/monetize/creative-ctv-guidelines-and-specifications",
+  "contract": "third_party",
+  "forbid_vpaid": true,
+  "forbid_qr": false,
+  "match": "all",
+  "duration_tolerance_sec": 0.5,
+  "renditions": [
+    {
+      "id": "high",
+      "required": true,
+      "file_types": ["video/mp4"],
+      "resolutions": [
+        { "width": 1280, "height": 720 },
+        { "width": 1920, "height": 1080 }
+      ],
+      "bitrate": { "min_kbps": 2000, "max_kbps": 5000 },
+      "duration_seconds": [15, 30]
+    },
+    {
+      "id": "low",
+      "required": true,
+      "file_types": ["video/mp4"],
+      "resolutions": [
+        { "width": 640, "height": 360 },
+        { "width": 1280, "height": 720 },
+        { "width": 1920, "height": 1080 }
+      ],
+      "bitrate": { "max_kbps_exclusive": 1500 },
+      "duration_seconds": [15, 30]
+    }
+  ]
+}

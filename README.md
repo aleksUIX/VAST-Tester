@@ -30,6 +30,7 @@ It is designed for buyers, sellers, SSPs, DSPs, SSAI teams, QA engineers, and ad
 - Display findings inline while editing XML
 - Review playback-oriented runtime signals, tracking waterfalls, and macro previews
 - Switch between different compliance-oriented validation profiles
+- Check declared MediaFiles against publisher destination packs (generic OTT, Netflix, Roku, ESPN, Hulu, NBCU)
 - Export reports and copy error summaries for partner debugging
 
 ## Built on `vastlint`

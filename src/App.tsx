@@ -54,6 +54,15 @@ import { OmidSessionHost } from "./qa/omidSession";
 import { emptyOmidSnapshot, type OmidAccessMode, type OmidSessionSnapshot } from "./qa/omidTypes";
 import { collectOmidScripts, readLinearSkipoffset } from "./qa/parseVerifications";
 import { parseCreativeSurfaces } from "./qa/parseCreativeSurfaces";
+import { DestinationPanel, DestinationSelect } from "./qa/destinations/DestinationPanel";
+import {
+  NONE_DESTINATION_ID,
+  destinationPackById,
+  evaluateDestination,
+  isDestinationPackId,
+  probeDestinationBitrates,
+  type DestinationFinding,
+} from "./qa/destinations";
 import { PlayerProfilePanel } from "./qa/PlayerProfilePanel";
 import {
   DEFAULT_PLAYER_PROFILE_ID,
@@ -141,6 +150,7 @@ interface SharedSessionState {
   payload: string;
   activeScenarioId: string | null;
   selectedComplianceProfileId: ComplianceProfileId | null;
+  selectedDestinationPackId: string | null;
 }
 
 interface TimelineEntry {
@@ -1102,6 +1112,9 @@ function readSharedSessionState(): SharedSessionState | null {
       selectedComplianceProfileId: isComplianceProfileId(parsed.selectedComplianceProfileId)
         ? parsed.selectedComplianceProfileId
         : null,
+      selectedDestinationPackId: isDestinationPackId(parsed.selectedDestinationPackId)
+        ? parsed.selectedDestinationPackId
+        : null,
     };
   } catch {
     return null;
@@ -1804,6 +1817,7 @@ function buildArtifactReadme(
   scenarioLabel: string | null,
   macroPreset: MacroPresetDefinition | null,
   complianceProfile: ComplianceProfileVerdict | null,
+  destinationLabel: string | null,
   waterfallCount: number,
   timelineCount: number,
   assetCount: number,
@@ -1813,6 +1827,7 @@ function buildArtifactReadme(
     `Scenario: ${scenarioLabel ?? "Custom input"}`,
     `Macro preset: ${macroPreset?.label ?? "Custom"}`,
     `Compliance lens: ${complianceProfile ? `${complianceProfile.label} (${complianceProfile.status})` : "n/a"}`,
+    `Destination: ${destinationLabel ?? "none"}`,
     `Tracking rows: ${String(waterfallCount)}`,
     `Timeline entries: ${String(timelineCount)}`,
     `Asset audit rows: ${String(assetCount)}`,
@@ -1821,7 +1836,7 @@ function buildArtifactReadme(
     "- report.txt / report.json: current validation summary",
     "- source/: original XML or URL references and optional fixed XML",
     "- runtime/: playback snapshot, timeline, macro set, and tracking waterfall",
-    "- validation/: wrapper chain, compliance verdicts, asset audit, and resolved-ad metadata",
+    "- validation/: wrapper chain, compliance verdicts, destination pack, asset audit, and resolved-ad metadata",
   ].join("\n");
 }
 
@@ -1965,6 +1980,7 @@ function buildReportSummary(
   scenarioLabel: string | null,
   lastFix: FixResult | null,
   activeComplianceVerdict: ComplianceProfileVerdict | null,
+  destinationLabel: string | null,
 ) {
   const lines = [
     "VAST Validator Report",
@@ -1975,6 +1991,7 @@ function buildReportSummary(
     `Version: ${snapshot.validation?.version ?? "unknown"}`,
     `Validity: ${snapshot.validation?.summary.valid ? "valid" : "not valid"}`,
     `Compliance lens: ${activeComplianceVerdict ? `${activeComplianceVerdict.label} (${activeComplianceVerdict.status})` : "n/a"}`,
+    `Destination: ${destinationLabel ?? "none"}`,
     `Counts: ${String(severity.error)} error(s), ${String(severity.warning)} warning(s), ${String(severity.info)} info`,
     `Wrapper hops: ${String(snapshot.wrapperChain.length)}`,
     `Resolved ads: ${String(resolvedAds.length)}`,
@@ -2014,7 +2031,9 @@ function buildErrorClipboardText(
   lastRun: RunRequest,
   scenarioLabel: string | null,
   activeComplianceVerdict: ComplianceProfileVerdict | null,
+  destinationLabel: string | null,
   issues: readonly Issue[],
+  destinationFindings: readonly { id: string; message: string; spec_ref: string; path: string }[],
 ) {
   const errorIssues = issues.filter((issue) => issue.severity === "error");
   const warningCount = issues.filter((issue) => issue.severity === "warning").length;
@@ -2024,6 +2043,7 @@ function buildErrorClipboardText(
     `Source: ${formatRunSource(lastRun)}`,
     `Action: ${lastRun.action}`,
     `Compliance lens: ${activeComplianceVerdict ? `${activeComplianceVerdict.label} (${activeComplianceVerdict.status})` : "n/a"}`,
+    `Destination: ${destinationLabel ?? "none"}`,
     `Exported: ${new Date().toISOString()}`,
     "",
   ];
@@ -2044,6 +2064,15 @@ function buildErrorClipboardText(
   if (warningCount > 0) {
     lines.push("");
     lines.push(`Warnings not included in this export: ${String(warningCount)}`);
+  }
+
+  if (destinationFindings.length > 0) {
+    lines.push("");
+    lines.push(`Destination findings: ${String(destinationFindings.length)}`);
+    for (const item of destinationFindings) {
+      lines.push(`- ${item.id} at ${item.path}: ${item.message}`);
+      lines.push(`  ${item.spec_ref}`);
+    }
   }
 
   return lines.join("\n");
@@ -2172,6 +2201,11 @@ function App() {
   const [omidAccessMode, setOmidAccessMode] = useState<OmidAccessMode>("full");
   const [omidSnapshot, setOmidSnapshot] = useState<OmidSessionSnapshot>(() => emptyOmidSnapshot());
   const [selectedPlayerProfileId, setSelectedPlayerProfileId] = useState(DEFAULT_PLAYER_PROFILE_ID);
+  const [selectedDestinationPackId, setSelectedDestinationPackId] = useState(
+    sharedSession?.selectedDestinationPackId && isDestinationPackId(sharedSession.selectedDestinationPackId)
+      ? sharedSession.selectedDestinationPackId
+      : NONE_DESTINATION_ID,
+  );
   const xmlTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const runnerProgressBucketRef = useRef(-1);
   const macroDefaultsRef = useRef({
@@ -2395,6 +2429,42 @@ function App() {
     () => evaluatePlayerMedia(playerProfile, playerMediaFiles),
     [playerMediaFiles, playerProfile],
   );
+  const destinationPack = destinationPackById(selectedDestinationPackId);
+  const destinationLayer1 = useMemo(
+    () => (destinationPack ? evaluateDestination(destinationPack, { xml: inspectionXml, files: playerMediaFiles }) : null),
+    [destinationPack, inspectionXml, playerMediaFiles],
+  );
+  const [destinationProbeFindings, setDestinationProbeFindings] = useState<DestinationFinding[]>([]);
+  useEffect(() => {
+    if (!destinationPack) {
+      setDestinationProbeFindings([]);
+      return;
+    }
+    let cancelled = false;
+    setDestinationProbeFindings([]);
+    void probeDestinationBitrates(destinationPack, inspectionXml, playerMediaFiles).then((findings) => {
+      if (!cancelled) {
+        setDestinationProbeFindings(findings);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [destinationPack, inspectionXml, playerMediaFiles]);
+  const destinationEvaluation = useMemo(() => {
+    if (!destinationLayer1) {
+      return null;
+    }
+    if (destinationProbeFindings.length === 0) {
+      return destinationLayer1;
+    }
+    const findings = [...destinationLayer1.findings, ...destinationProbeFindings];
+    return {
+      ...destinationLayer1,
+      findings,
+      status: findings.some((item) => item.severity === "error") ? "fail" as const : "pass" as const,
+    };
+  }, [destinationLayer1, destinationProbeFindings]);
   const creativeSurfaces = useMemo(() => parseCreativeSurfaces(inspectionXml), [inspectionXml]);
   const runtimeInspection = useMemo(
     () => buildRuntimeInspection(inspectionXml, inventoryAds),
@@ -2492,8 +2562,18 @@ function App() {
       .slice(0, 16);
   }, [runnerSnapshot.session.events, runnerTimeline, runnerTracker.tracking.history]);
   const reportSummary = useMemo(
-    () => buildReportSummary(lastRun, snapshot, severity, issues, inventoryAds, activeScenario?.label ?? null, lastFix, activeComplianceVerdict),
-    [activeComplianceVerdict, activeScenario?.label, inventoryAds, issues, lastFix, lastRun, severity, snapshot],
+    () => buildReportSummary(
+      lastRun,
+      snapshot,
+      severity,
+      issues,
+      inventoryAds,
+      activeScenario?.label ?? null,
+      lastFix,
+      activeComplianceVerdict,
+      destinationEvaluation ? `${destinationEvaluation.pack.display_name} (${destinationEvaluation.status})` : null,
+    ),
+    [activeComplianceVerdict, activeScenario?.label, destinationEvaluation, inventoryAds, issues, lastFix, lastRun, severity, snapshot],
   );
   const reportData = useMemo(
     () => ({
@@ -2521,6 +2601,17 @@ function App() {
           : null,
         profiles: complianceVerdicts,
       },
+      destination: destinationEvaluation
+        ? {
+            id: destinationEvaluation.pack.id,
+            label: destinationEvaluation.pack.display_name,
+            docs: destinationEvaluation.pack.docs,
+            contract: destinationEvaluation.pack.contract,
+            status: destinationEvaluation.status,
+            findings: destinationEvaluation.findings,
+            assignments: destinationEvaluation.assignments,
+          }
+        : null,
       wrappers: snapshot.wrapperChain.map((hop) => ({
         index: hop.index,
         adType: hop.adType,
@@ -2579,7 +2670,7 @@ function App() {
         omid: omidSnapshot,
       },
     }),
-    [activeComplianceVerdict, activeMacroPreset?.id, activeMacros, activeScenario?.label, assetAuditRows, complianceVerdicts, inventoryAds, issues, lastFix, lastRun, omidSnapshot, playerProfile.id, runnerMediaUrl, runnerSnapshot.clickThroughUrl, runnerSnapshot.fullscreen, runnerSnapshot.milestones, runnerSnapshot.muted, runnerSnapshot.status, runnerSnapshot.viewability, runnerTracker.tracking.history, severity, snapshot, trackingWaterfallRows],
+    [activeComplianceVerdict, activeMacroPreset?.id, activeMacros, activeScenario?.label, assetAuditRows, complianceVerdicts, destinationEvaluation, inventoryAds, issues, lastFix, lastRun, omidSnapshot, playerProfile.id, runnerMediaUrl, runnerSnapshot.clickThroughUrl, runnerSnapshot.fullscreen, runnerSnapshot.milestones, runnerSnapshot.muted, runnerSnapshot.status, runnerSnapshot.viewability, runnerTracker.tracking.history, severity, snapshot, trackingWaterfallRows],
   );
 
   useEffect(() => {
@@ -2953,7 +3044,14 @@ function App() {
   const copyErrorFindings = async () => {
     try {
       await globalThis.navigator.clipboard.writeText(
-        buildErrorClipboardText(lastRun, activeScenario?.label ?? null, activeComplianceVerdict, issues),
+        buildErrorClipboardText(
+          lastRun,
+          activeScenario?.label ?? null,
+          activeComplianceVerdict,
+          destinationEvaluation ? `${destinationEvaluation.pack.display_name} (${destinationEvaluation.status})` : null,
+          issues,
+          destinationEvaluation?.findings ?? [],
+        ),
       );
       setReportNotice(
         issues.some((issue) => issue.severity === "error")
@@ -2973,6 +3071,7 @@ function App() {
         payload: lastRun.payload,
         activeScenarioId,
         selectedComplianceProfileId,
+        selectedDestinationPackId,
       } satisfies SharedSessionState));
       const shareUrl = new URL(globalThis.location.href);
       shareUrl.hash = new URLSearchParams({ session: sharePayload }).toString();
@@ -3009,6 +3108,7 @@ function App() {
         activeScenario?.label ?? null,
         activeMacroPreset,
         activeComplianceVerdict,
+        destinationEvaluation ? `${destinationEvaluation.pack.display_name} (${destinationEvaluation.status})` : null,
         trackingWaterfallRows.length,
         timelineEntries.length,
         assetAuditRows.length,
@@ -3057,6 +3157,19 @@ function App() {
       activeProfile: activeComplianceVerdict,
       profiles: complianceVerdicts,
     }, null, 2));
+    zip.file("validation/destination.json", JSON.stringify(destinationEvaluation
+      ? {
+          pack: {
+            id: destinationEvaluation.pack.id,
+            display_name: destinationEvaluation.pack.display_name,
+            docs: destinationEvaluation.pack.docs,
+            contract: destinationEvaluation.pack.contract,
+          },
+          status: destinationEvaluation.status,
+          findings: destinationEvaluation.findings,
+          assignments: destinationEvaluation.assignments,
+        }
+      : { pack: null, status: "idle", findings: [] }, null, 2));
     zip.file("validation/asset-audit.json", JSON.stringify(assetAuditRows, null, 2));
 
     const blob = await zip.generateAsync({ type: "blob" });
@@ -3715,10 +3828,30 @@ function App() {
                   {activeComplianceVerdict.label} {activeComplianceVerdict.status}
                 </span>
               ) : null}
+              {destinationEvaluation ? (
+                <span className={`pill profile-${destinationEvaluation.status}`}>
+                  {destinationEvaluation.pack.display_name} {destinationEvaluation.status}
+                </span>
+              ) : null}
               <span className="badge">{displayedIssues.length}</span>
             </>
           }
         >
+          <div className="destination-toolbar" data-destination-toolbar="true">
+            <span className="qa-simid-kicker">Destination</span>
+            <DestinationSelect
+              onPack={(id) => {
+                setSelectedDestinationPackId(id);
+                const next = destinationPackById(id);
+                appendRunnerTimeline(
+                  "ui",
+                  `destination:${id}`,
+                  next ? `${next.display_name}: ${next.summary}` : "No destination pack",
+                );
+              }}
+              packId={selectedDestinationPackId}
+            />
+          </div>
           <div className="lens-row" role="group" aria-label="Compliance lens">
             {complianceVerdicts.map((profile) => (
               <button
@@ -4020,6 +4153,21 @@ function App() {
                 }}
                 profile={playerProfile}
               />
+              {simidStudioOpen ? null : (
+                <DestinationPanel
+                  evaluation={destinationEvaluation}
+                  onPack={(id) => {
+                    setSelectedDestinationPackId(id);
+                    const next = destinationPackById(id);
+                    appendRunnerTimeline(
+                      "ui",
+                      `destination:${id}`,
+                      next ? `${next.display_name}: ${next.summary}` : "No destination pack",
+                    );
+                  }}
+                  packId={selectedDestinationPackId}
+                />
+              )}
             </div>
           <div className="metric-strip">
             <Metric label="Status" value={runnerSnapshot.status} accent={runnerSnapshot.status === "error" ? "error" : runnerSnapshot.status === "playing" ? "good" : "neutral"} />

@@ -1,0 +1,26 @@
+{
+  "id": "destination/hulu",
+  "display_name": "Hulu",
+  "summary": "Microsoft Monetize Hulu table (hosted and third-party share the band): MP4 or MOV, 15,000–30,000 kbps, listed 720p/1080p sizes, 15 or 30 seconds. One file required.",
+  "source_level": "official_vendor",
+  "docs": "https://learn.microsoft.com/en-us/xandr/monetize/creative-ctv-guidelines-and-specifications",
+  "contract": "third_party",
+  "forbid_vpaid": true,
+  "forbid_qr": false,
+  "match": "any",
+  "duration_tolerance_sec": 0.5,
+  "renditions": [
+    {
+      "id": "hulu",
+      "file_types": ["video/mp4", "video/quicktime"],
+      "resolutions": [
+        { "width": 960, "height": 720 },
+        { "width": 1280, "height": 720 },
+        { "width": 1440, "height": 1080 },
+        { "width": 1920, "height": 1080 }
+      ],
+      "bitrate": { "min_kbps": 15000, "max_kbps": 30000 },
+      "duration_seconds": [15, 30]
+    }
+  ]
+}
