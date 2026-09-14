@@ -1,6 +1,6 @@
 # VAST Tester AleksUIX
 
-This is the **host** branch: the vastlint.org deployment. IAB-neutral source lives on `master`. Merge `master` into `host` for features, then keep `src/branding.ts`, `src/BrandChrome.tsx`, `index.html`, and this README on the host side.
+This is `main`: the vastlint.org deployment. IAB-neutral source lives on `main-iab`. Merge `main-iab` into `main` for tester features, then keep `src/branding.ts`, `src/BrandChrome.tsx`, `index.html`, and this README on `main`.
 
 **Live: [iab-tech-lab-vast-tester.vastlint.org](https://iab-tech-lab-vast-tester.vastlint.org/)**
 
