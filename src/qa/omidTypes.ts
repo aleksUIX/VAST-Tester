@@ -10,7 +10,7 @@ export type OmidSessionStatus =
 
 export type OmidScriptStatus = "pending" | "injectable" | "injected" | "not-executed" | "opaque";
 
-/** VAST [REASON] codes as documented on vastlint.org/docs/vast-macros. */
+/** VAST verificationNotExecuted [REASON] codes. */
 export type OmidNotExecutedReason = "1" | "2" | "3";
 
 export const OMID_REASON_LABELS: Record<OmidNotExecutedReason, string> = {

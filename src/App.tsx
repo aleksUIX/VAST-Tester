@@ -41,6 +41,8 @@ import vast44SqueezebackSimidXml from "./scenarios/vast44-squeezeback-simid.xml?
 import viewableImpressionXml from "./scenarios/viewable-impression.xml?raw";
 import wrapperSignalsXml from "./scenarios/wrapper-signals.xml?raw";
 
+import { AppFooter, ExternalGlyph, FindingsFeedback, Masthead, feedbackMailto } from "./BrandChrome";
+import { branding } from "./branding";
 import { OverlayStage, SimidInspectPanel, type SimidCommands } from "./qa/QaStudio";
 import { SimidStudioGuide } from "./qa/SimidStudioGuide";
 import { OmidPanel } from "./qa/OmidPanel";
@@ -267,10 +269,7 @@ const EDITOR_GEOMETRY = {
   "--editor-line-height": `${String(EDITOR_LINE_HEIGHT)}px`,
   "--editor-padding-top": `${String(EDITOR_VERTICAL_PADDING)}px`,
 } as CSSProperties;
-const RULE_DOCS_BASE = "https://vastlint.org/docs/rules";
-const FEEDBACK_EMAIL = "aleks@vastlint.org";
 const DEFAULT_APP_ORIGIN = "http://localhost:5175";
-const SCENARIO_FALLBACK_ASSET_ORIGIN = "https://iab-tech-lab-vast-tester.vastlint.org";
 const APP_BASE_PATH = import.meta.env.BASE_URL ?? "/";
 
 const PROFILE_RULE_DEFAULT_SEVERITIES: Record<string, Issue["severity"]> = {
@@ -867,7 +866,8 @@ function buildScenarioFixtureUrl(path: string) {
     return buildLocalAssetUrl(normalizedPath);
   }
 
-  return new URL(normalizedPath, SCENARIO_FALLBACK_ASSET_ORIGIN).toString();
+  const fallbackOrigin = branding.scenarioFallbackOrigin ?? DEFAULT_APP_ORIGIN;
+  return new URL(normalizedPath, fallbackOrigin).toString();
 }
 
 function absolutizeScenarioXmlLocalUrls(xml: string) {
@@ -1795,8 +1795,6 @@ function buildTrackingFetch(documentUrls: readonly string[]): typeof fetch {
   };
 }
 
-const VAST_PROXY_ENDPOINT = "https://vastlint.org/api/vast-proxy";
-
 async function fetchVastDocumentWithProxyFallback(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const targetUrl = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
 
@@ -1809,11 +1807,18 @@ async function fetchVastDocumentWithProxyFallback(input: RequestInfo | URL, init
       }
       throw new Error("Direct fetch returned a non-XML response");
     }
-  } catch {
-    // Fall through to the proxy below — direct browser fetch failed or was intercepted.
+  } catch (error) {
+    if (!branding.vastProxyEndpoint) {
+      throw error instanceof Error ? error : new Error("Direct fetch failed");
+    }
+    // Fall through to the proxy below. Direct browser fetch failed or was intercepted.
   }
 
-  const proxyResponse = await globalThis.fetch(`${VAST_PROXY_ENDPOINT}?url=${encodeURIComponent(targetUrl)}`, {
+  if (!branding.vastProxyEndpoint) {
+    throw new Error("Direct fetch failed and no VAST proxy is configured");
+  }
+
+  const proxyResponse = await globalThis.fetch(`${branding.vastProxyEndpoint}?url=${encodeURIComponent(targetUrl)}`, {
     signal: init?.signal ?? undefined,
   });
 
@@ -2002,30 +2007,11 @@ function countBySeverity(issues: readonly Issue[]) {
 }
 
 function ruleDocsUrl(ruleId: string) {
-  const encoded = encodeURIComponent(ruleId);
-  if (ruleId.startsWith("SIMID-")) return `https://vastlint.org/docs/simid-rules/${encoded}/`;
-  if (ruleId.startsWith("VPAID-")) return `https://vastlint.org/docs/vpaid-rules/${encoded}/`;
-  return `https://vastlint.org/docs/rules/${encoded}/`;
-}
-
-function feedbackMailto(subject: string, bodyLines: (string | null)[] = []) {
-  const body = bodyLines.filter((line): line is string => line !== null && line.length > 0).join("\n");
-  const query = `subject=${encodeURIComponent(subject)}${body ? `&body=${encodeURIComponent(body)}` : ""}`;
-  return `mailto:${FEEDBACK_EMAIL}?${query}`;
+  return branding.ruleDocsUrl(ruleId);
 }
 
 function isFollowableUrl(value: string | null | undefined): value is string {
   return typeof value === "string" && /^https?:\/\//i.test(value.trim());
-}
-
-function ExternalGlyph() {
-  return (
-    <svg aria-hidden="true" className="external-glyph" focusable="false" viewBox="0 0 12 12">
-      <path d="M4.5 1.5h6v6" fill="none" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M10.5 1.5 5 7" fill="none" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M8.5 9.5h-6v-6h3" fill="none" stroke="currentColor" strokeWidth="1.4" />
-    </svg>
-  );
 }
 
 /**
@@ -3284,38 +3270,7 @@ function App() {
 
   return (
     <div className="shell">
-      <header className="masthead">
-        <div className="masthead-copy">
-          <h1>IAB-style VAST tester</h1>
-          <p className="lede">
-            SIMID studio and IAB sample creatives. Independent vastlint-powered rebuild of the legacy IAB Tech Lab VAST
-            Tester. Not affiliated with IAB Tech Lab, and not the official IAB VAST Tag Validator. Validation,
-            deterministic repair, wrapper inspection, playback and tracking QA, and partner-shareable reports across
-            VAST 2.0-4.4.
-          </p>
-        </div>
-        <nav className="masthead-links" aria-label="Reference and feedback">
-          <a href={RULE_DOCS_BASE} rel="noreferrer noopener" target="_blank">
-            Rule catalog
-            <ExternalGlyph />
-          </a>
-          <a href="https://vastlint.org/docs/common-vast-errors" rel="noreferrer noopener" target="_blank">
-            Common VAST errors
-            <ExternalGlyph />
-          </a>
-          <a href="https://github.com/aleksUIX/vastlint/issues/new" rel="noreferrer noopener" target="_blank">
-            Report an issue
-            <ExternalGlyph />
-          </a>
-          <a href="https://github.com/aleksUIX/vastlint/discussions" rel="noreferrer noopener" target="_blank">
-            Start a discussion
-            <ExternalGlyph />
-          </a>
-          <a className="masthead-mail" href={feedbackMailto("VAST Tester feedback")}>
-            Email {FEEDBACK_EMAIL}
-          </a>
-        </nav>
-      </header>
+      <Masthead />
 
       <div
         className={`statusbar tone-${overviewTone}`}
@@ -3779,17 +3734,21 @@ function App() {
                     <span className="chip">{issue.severity}</span>
                   </div>
                   <strong className="table-cell" data-label="Rule">
-                    <a
-                      className="rule-link"
-                      data-rule={issue.id}
-                      href={ruleDocsUrl(issue.id)}
-                      rel="noreferrer noopener"
-                      target="_blank"
-                      title={`Opens in a new tab: the ${issue.id} rule page on vastlint.org`}
-                    >
-                      {issue.id}
-                      <ExternalGlyph />
-                    </a>
+                    {ruleDocsUrl(issue.id) ? (
+                      <a
+                        className="rule-link"
+                        data-rule={issue.id}
+                        href={ruleDocsUrl(issue.id) ?? undefined}
+                        rel="noreferrer noopener"
+                        target="_blank"
+                        title={`Opens in a new tab: ${issue.id}`}
+                      >
+                        {issue.id}
+                        <ExternalGlyph />
+                      </a>
+                    ) : (
+                      <span data-rule={issue.id}>{issue.id}</span>
+                    )}
                   </strong>
                   <span className="table-cell row-location" data-label="Location">
                     {issue.line !== null && canJumpToEditorLine ? (
@@ -3814,16 +3773,7 @@ function App() {
             </div>
           )}
 
-          {displayedIssues.length > 0 ? (
-            <p className="findings-feedback">
-              A finding look wrong, or a rule need explaining? Email <a href={findingsFeedbackMailto}>{FEEDBACK_EMAIL}</a>{" "}
-              with the tag and the rule ID, or{" "}
-              <a href="https://github.com/aleksUIX/vastlint/issues/new" rel="noreferrer noopener" target="_blank">
-                open a GitHub issue
-              </a>
-              .
-            </p>
-          ) : null}
+          {displayedIssues.length > 0 ? <FindingsFeedback mailto={findingsFeedbackMailto} /> : null}
         </Section>
 
         <Section
@@ -4514,42 +4464,7 @@ function App() {
         </Section>
       </main>
 
-      <footer className="app-footer">
-        <p>
-          Validation, repair, and wrapper resolution run on{" "}
-          <a href="https://vastlint.org" rel="noreferrer" target="_blank">
-            vastlint
-          </a>
-          , an open-source VAST validation engine with rules derived from published IAB Tech Lab specs and XSD schemas.
-          This tester is an independent frontend for that engine, not an official IAB Tech Lab tool. See{" "}
-          <a href="https://vastlint.org" rel="noreferrer" target="_blank">
-            vastlint.org
-          </a>{" "}
-          for the hosted validator, CLI, and native Go, Rust, Python, and npm packages. Found a wrong result or want a
-          new rule? <a href="https://github.com/aleksUIX/vastlint/issues/new" rel="noreferrer noopener" target="_blank">
-            Report an issue
-          </a>{" "}
-          or{" "}
-          <a href="https://github.com/aleksUIX/vastlint/discussions" rel="noreferrer noopener" target="_blank">
-            start a discussion
-          </a>{" "}
-          on the vastlint GitHub repo. No GitHub account? Email{" "}
-          <a href={feedbackMailto("VAST Tester feedback")}>{FEEDBACK_EMAIL}</a> instead. Every report is read by the
-          person who maintains the tool.
-        </p>
-        <p>
-          Tags you paste or fetch on this tester may be stored (device IDs and IPs stripped) so
-          vastlint can improve its rules. Built-in samples are not sent. See{" "}
-          <a href="https://vastlint.org/privacy/" rel="noreferrer" target="_blank">
-            vastlint.org/privacy
-          </a>
-          {" · "}
-          <a href="https://vastlint.org/terms/" rel="noreferrer" target="_blank">
-            terms
-          </a>
-          . Pasting a tag licenses us to store it and probe URLs in it for development.
-        </p>
-      </footer>
+      <AppFooter />
     </div>
   );
 }

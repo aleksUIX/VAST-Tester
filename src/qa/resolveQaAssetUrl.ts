@@ -1,7 +1,6 @@
-const FIXTURE_HOSTS = new Set([
-  "example.com",
-  "iab-tech-lab-vast-tester.vastlint.org",
-]);
+import { branding } from "../branding";
+
+const FIXTURE_HOSTS = new Set(branding.fixtureHosts);
 
 function appOrigin(): string {
   if (typeof globalThis.location === "object") {

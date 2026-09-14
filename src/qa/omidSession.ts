@@ -1,3 +1,4 @@
+import { branding } from "../branding";
 import {
   omidScriptsToInject,
   probeOmidScript,
@@ -91,7 +92,7 @@ export interface OmidHostOptions {
   onChange(snapshot: OmidSessionSnapshot): void;
 }
 
-const PARTNER_NAME = "vastlint VAST Tester";
+const PARTNER_NAME = branding.omidPartnerName;
 const PARTNER_VERSION = "0.1.0";
 const SESSION_TIMEOUT_MS = 8000;
 

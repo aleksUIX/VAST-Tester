@@ -1,4 +1,5 @@
-const SAMPLE_ENDPOINT = "https://vastlint.org/api/samples";
+import { branding } from "./branding";
+
 const OPT_OUT_KEY = "vastlint-omit-samples";
 const OPT_EVENT = "vastlint-samples-opt";
 const MIN_XML_CHARS = 80;
@@ -83,12 +84,13 @@ export function recordUsageSample(args: {
   url?: string | null;
 }): void {
   if (typeof window === "undefined") return;
+  if (!branding.collectSamples || !branding.sampleEndpoint) return;
   if (samplesOptedOut()) return;
   const xml = args.xml.trim();
   if (xml.length < MIN_XML_CHARS || xml.length > MAX_XML_CHARS) return;
   if (!xml.startsWith("<")) return;
 
-  void fetch(SAMPLE_ENDPOINT, {
+  void fetch(branding.sampleEndpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     keepalive: true,
