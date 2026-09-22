@@ -26,6 +26,7 @@ import simidIabExtenderXml from "./scenarios/simid-iab-extender.xml?raw";
 import simidIabOverlayXml from "./scenarios/simid-iab-overlay.xml?raw";
 import simidIabSurveyXml from "./scenarios/simid-iab-survey.xml?raw";
 import simidIabTestersNonlinearXml from "./scenarios/simid-iab-testers-nonlinear.xml?raw";
+import simidPodXml from "./scenarios/simid-pod.xml?raw";
 import simidProtocolExplorerXml from "./scenarios/simid-protocol-explorer.xml?raw";
 import skippableLinearXml from "./scenarios/skippable-linear.xml?raw";
 import ctvPortfolio2PauseXml from "./scenarios/ctv-portfolio-2-pause.xml?raw";
@@ -53,7 +54,7 @@ import { OmidPanel } from "./qa/OmidPanel";
 import { OmidSessionHost } from "./qa/omidSession";
 import { emptyOmidSnapshot, type OmidAccessMode, type OmidSessionSnapshot } from "./qa/omidTypes";
 import { collectOmidScripts, readLinearSkipoffset } from "./qa/parseVerifications";
-import { parseCreativeSurfaces } from "./qa/parseCreativeSurfaces";
+import { parseAdSlots, parseCreativeSurfaces, resolvedStudioXml } from "./qa/parseCreativeSurfaces";
 import { DestinationPanel, DestinationSelect } from "./qa/destinations/DestinationPanel";
 import {
   NONE_DESTINATION_ID,
@@ -581,6 +582,28 @@ const SCENARIO_PRESETS: readonly ScenarioPreset[] = [
     payload: simidIabTestersNonlinearXml,
   },
   {
+    id: "simid-wrapper-chain",
+    label: "SIMID behind a wrapper",
+    description: "The wrapper carries tracking only. Resolve it and the studio handshakes the inline, which also carries a mezzanine, OMID, icons, and AdParameters.",
+    groupId: "simid",
+    versionLabel: "VAST 4.2",
+    focusAreas: ["simid", "wrapper", "resolve", "mezzanine", "omid"],
+    sourceMode: "url",
+    action: "resolve",
+    payload: "/scenarios/simid-wrapper.xml",
+  },
+  {
+    id: "simid-pod",
+    label: "Bumper then SIMID",
+    description: "A two-ad pod. The bumper has no InteractiveCreativeFile, and the second ad opens the SIMID handshake with its own AdParameters.",
+    groupId: "simid",
+    versionLabel: "VAST 4.2",
+    focusAreas: ["simid", "pod", "sequence"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: simidPodXml,
+  },
+  {
     id: "click-tracking",
     label: "Click tracking",
     description: "Video click-through, click tracking, and custom click URLs in one linear ad.",
@@ -831,7 +854,7 @@ const SCENARIO_GROUPS: readonly ScenarioGroupDefinition[] = [
   {
     id: "simid",
     label: "SIMID interactive",
-    description: "InteractiveCreativeFile overlays: in-house samples plus IAB Tech Lab overlay, survey, extender, and nonlinear testers.",
+    description: "InteractiveCreativeFile overlays, including a wrapper hop and a bumper-then-SIMID pod, plus IAB Tech Lab overlay, survey, extender, and nonlinear testers.",
   },
   {
     id: "measurement",
@@ -2422,13 +2445,29 @@ function App() {
     [resolvedAds, runnerSnapshot.resolvedAd],
   );
   const inspectionXml = snapshot.rootXml ?? (lastRun.sourceMode === "xml" ? lastRun.payload : null);
+  const studioXml = useMemo(
+    () => resolvedStudioXml(inspectionXml, snapshot.wrapperChain),
+    [inspectionXml, snapshot.wrapperChain],
+  );
+  const adSlots = useMemo(() => parseAdSlots(studioXml), [studioXml]);
+  const [adIndex, setAdIndex] = useState(0);
+  useEffect(() => {
+    setAdIndex(0);
+  }, [studioXml]);
+  const slotIndex = adSlots.length === 0 ? 0 : Math.min(adIndex, adSlots.length - 1);
+  const activeSlot = adSlots[slotIndex] ?? null;
+  const creativeSurfaces = activeSlot?.surfaces ?? parseCreativeSurfaces(studioXml);
+  const stageMediaFiles = useMemo(
+    () => collectPlayerMediaFiles(activeSlot?.xml ?? studioXml, []),
+    [activeSlot, studioXml],
+  );
   const playerMediaFiles = useMemo(
     () => collectPlayerMediaFiles(inspectionXml, inventoryAds),
     [inspectionXml, inventoryAds],
   );
   const playerMediaEvaluation = useMemo(
-    () => evaluatePlayerMedia(playerProfile, playerMediaFiles),
-    [playerMediaFiles, playerProfile],
+    () => evaluatePlayerMedia(playerProfile, stageMediaFiles.length > 0 ? stageMediaFiles : playerMediaFiles),
+    [playerMediaFiles, playerProfile, stageMediaFiles],
   );
   const destinationPack = destinationPackById(selectedDestinationPackId);
   const destinationLayer1 = useMemo(
@@ -2466,10 +2505,9 @@ function App() {
       status: findings.some((item) => item.severity === "error") ? "fail" as const : "pass" as const,
     };
   }, [destinationLayer1, destinationProbeFindings]);
-  const creativeSurfaces = useMemo(() => parseCreativeSurfaces(inspectionXml), [inspectionXml]);
   const runtimeInspection = useMemo(
-    () => buildRuntimeInspection(inspectionXml, inventoryAds),
-    [inspectionXml, inventoryAds],
+    () => buildRuntimeInspection(studioXml, inventoryAds),
+    [inventoryAds, studioXml],
   );
   const omidScripts = useMemo(
     () => collectOmidScripts(inventoryAds, snapshot.wrapperChain, inspectionXml),
@@ -2765,7 +2803,7 @@ function App() {
     // A one-entry chain is just the root document, not a chain worth opening.
     wrappers: Math.max(0, snapshot.wrapperChain.length - 1),
     resolved: inventoryAds.length,
-    playback: runnerSnapshot.resolvedAd || creativeSurfaces.overlays.length > 0 ? 1 : 0,
+    playback: runnerSnapshot.resolvedAd || creativeSurfaces.overlays.length > 0 || adSlots.length > 1 ? 1 : 0,
     tracking: trackingWaterfallRows.length,
     runtime: runtimeInspection.verificationResources.length
       + runtimeInspection.companions.length
@@ -2775,6 +2813,7 @@ function App() {
     macros: 0,
     export: 0,
   }), [
+    adSlots.length,
     creativeSurfaces.overlays.length,
     inventoryAds.length,
     issues.length,
@@ -4126,6 +4165,32 @@ function App() {
             data-simid-present={creativeSurfaces.simid.length > 0 ? "true" : "false"}
           >
             <div className="simid-studio-chrome">
+              {adSlots.length > 1 ? (
+                <div className="simid-studio-bar">
+                  <strong>
+                    Ad {slotIndex + 1} of {adSlots.length}
+                    {activeSlot?.title ? ` · ${activeSlot.title}` : ""}
+                  </strong>
+                  <div className="simid-studio-bar-actions">
+                    <button
+                      className="secondary"
+                      disabled={slotIndex === 0}
+                      onClick={() => setAdIndex(slotIndex - 1)}
+                      type="button"
+                    >
+                      Previous ad
+                    </button>
+                    <button
+                      className="secondary"
+                      disabled={slotIndex >= adSlots.length - 1}
+                      onClick={() => setAdIndex(slotIndex + 1)}
+                      type="button"
+                    >
+                      Next ad
+                    </button>
+                  </div>
+                </div>
+              ) : null}
               {creativeSurfaces.simid.length > 0 ? (
                 <div className="simid-studio-bar">
                   <strong>SIMID studio</strong>
@@ -4289,13 +4354,20 @@ function App() {
                   >
                     {stageMediaUrl ? (
                       <video
+                        key={activeSlot?.id ?? "stage"}
                         ref={runnerVideoRef}
                         className="runner-video"
                         controls={creativeSurfaces.simid.length === 0}
                         crossOrigin="anonymous"
                         muted={runnerAudioMuted}
                         playsInline
-                        onEnded={() => void handleRunnerEnded()}
+                        onEnded={() => {
+                          if (slotIndex + 1 < adSlots.length) {
+                            setAdIndex(slotIndex + 1);
+                            return;
+                          }
+                          void handleRunnerEnded();
+                        }}
                         onLoadedMetadata={() =>
                           appendRunnerTimeline("media", "video:metadata", "Loaded media metadata into the playback runner.")
                         }

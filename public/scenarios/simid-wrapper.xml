@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.2">
+  <Ad id="simid-wrapper-hop">
+    <Wrapper>
+      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <VASTAdTagURI><![CDATA[/scenarios/simid-wrapper-inline.xml]]></VASTAdTagURI>
+      <Error><![CDATA[https://example.com/wrapper/error?code=%%ERRORCODE%%]]></Error>
+      <Impression><![CDATA[https://example.com/wrapper/impression]]></Impression>
+      <Creatives>
+        <Creative>
+          <Linear>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://example.com/wrapper/start]]></Tracking>
+            </TrackingEvents>
+          </Linear>
+        </Creative>
+      </Creatives>
+    </Wrapper>
+  </Ad>
+</VAST>

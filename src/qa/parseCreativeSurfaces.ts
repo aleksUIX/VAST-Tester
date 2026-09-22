@@ -224,3 +224,69 @@ export function primarySimidSurface(surfaces: CreativeSurfaces): OverlaySurface 
 export function staticOverlays(surfaces: CreativeSurfaces): OverlaySurface[] {
   return surfaces.overlays.filter((surface) => surface.role === "nonlinear" && surface.resourceKind === "static" && surface.url.length > 0);
 }
+
+export interface AdSlot {
+  id: string;
+  sequence: number | null;
+  title: string;
+  xml: string;
+  surfaces: CreativeSurfaces;
+}
+
+export function resolvedStudioXml(
+  rootXml: string | null,
+  hops: readonly { adType: string; xml: string }[],
+): string | null {
+  if (hops.length > 1) {
+    const inline = [...hops].reverse().find((hop) => hop.adType === "InLine" && hop.xml.includes("<InLine"));
+    if (inline) {
+      return inline.xml;
+    }
+  }
+  return rootXml;
+}
+
+export function parseAdSlots(xml: string | null): AdSlot[] {
+  if (!xml || typeof window === "undefined") {
+    return [];
+  }
+
+  const doc = new DOMParser().parseFromString(xml, "text/xml");
+  if (doc.querySelector("parsererror")) {
+    return [];
+  }
+
+  const ads = Array.from(doc.documentElement.querySelectorAll(":scope > Ad"));
+  if (ads.length === 0) {
+    return [{
+      id: "document",
+      sequence: null,
+      title: "",
+      xml,
+      surfaces: parseCreativeSurfaces(xml),
+    }];
+  }
+
+  const version = doc.documentElement.getAttribute("version") || "4.1";
+  const slots = ads.map((ad, index) => {
+    const raw = Number(ad.getAttribute("sequence"));
+    const sequence = Number.isFinite(raw) && raw > 0 ? raw : null;
+    const slotXml = `<?xml version="1.0" encoding="UTF-8"?>\n<VAST version="${version}">\n${ad.outerHTML}\n</VAST>`;
+    return {
+      id: ad.getAttribute("id") || `ad-${index + 1}`,
+      sequence,
+      title: ad.querySelector("AdTitle")?.textContent?.trim() ?? "",
+      xml: slotXml,
+      surfaces: parseCreativeSurfaces(slotXml),
+      order: sequence ?? index + 1,
+    };
+  });
+  slots.sort((left, right) => left.order - right.order);
+  return slots.map((slot) => ({
+    id: slot.id,
+    sequence: slot.sequence,
+    title: slot.title,
+    xml: slot.xml,
+    surfaces: slot.surfaces,
+  }));
+}

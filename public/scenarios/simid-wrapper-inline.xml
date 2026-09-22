@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.2">
+  <Ad id="simid-wrapper-inline">
+    <InLine>
+      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdServingId>simid-wrapper-inline</AdServingId>
+      <AdTitle>SIMID after the wrapper hop</AdTitle>
+      <Impression><![CDATA[https://example.com/inline/impression]]></Impression>
+      <Creatives>
+        <Creative id="simid-wrapper-creative" sequence="1">
+          <UniversalAdId idRegistry="Ad-ID">SIMID-WRAP-1</UniversalAdId>
+          <Linear>
+            <Duration>00:00:15</Duration>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://example.com/inline/start]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://example.com/inline/complete]]></Tracking>
+            </TrackingEvents>
+            <VideoClicks>
+              <ClickThrough><![CDATA[https://example.com/clickthrough]]></ClickThrough>
+            </VideoClicks>
+            <Icons>
+              <Icon program="AdChoices" width="60" height="60" xPosition="right" yPosition="top">
+                <StaticResource creativeType="image/png"><![CDATA[https://dummyimage.com/60x60/e7e7e7/111111.png&text=i]]></StaticResource>
+                <IconClickThrough><![CDATA[https://example.com/icon-click]]></IconClickThrough>
+              </Icon>
+            </Icons>
+            <MediaFiles>
+              <MediaFile delivery="progressive" type="video/mp4" width="640" height="360" bitrate="800"><![CDATA[/fixtures/video/bbb-360p.mp4]]></MediaFile>
+              <MediaFile delivery="progressive" type="video/webm" width="640" height="360" bitrate="600"><![CDATA[/fixtures/video/bbb-360p.webm]]></MediaFile>
+              <Mezzanine delivery="progressive" type="video/mp4" width="3840" height="2160"><![CDATA[https://example.com/mezzanine/simid-source-4k.mp4]]></Mezzanine>
+              <InteractiveCreativeFile type="text/html" apiFramework="SIMID" variableDuration="true"><![CDATA[/fixtures/simid/integration-choice.html]]></InteractiveCreativeFile>
+            </MediaFiles>
+            <AdParameters><![CDATA[{"headline":"Pick a finish","choices":["Matte","Gloss"]}]]></AdParameters>
+          </Linear>
+        </Creative>
+      </Creatives>
+      <AdVerifications>
+        <Verification vendor="iabtechlab.com-omid">
+          <JavaScriptResource apiFramework="omid" browserOptional="true"><![CDATA[/fixtures/omid/omid-validation-verification-script-v1.js]]></JavaScriptResource>
+          <TrackingEvents>
+            <Tracking event="verificationNotExecuted"><![CDATA[https://example.com/verification-not-executed?reason=[REASON]]]></Tracking>
+          </TrackingEvents>
+          <VerificationParameters><![CDATA[mode=test&vendor=vastlint-demo]]></VerificationParameters>
+        </Verification>
+      </AdVerifications>
+    </InLine>
+  </Ad>
+</VAST>

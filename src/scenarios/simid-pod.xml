@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.2">
+  <Ad id="pod-bumper" sequence="1">
+    <InLine>
+      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdServingId>pod-bumper</AdServingId>
+      <AdTitle>Pod bumper</AdTitle>
+      <Impression><![CDATA[https://example.com/pod/bumper/impression]]></Impression>
+      <Creatives>
+        <Creative id="pod-bumper-creative" sequence="1">
+          <Linear>
+            <Duration>00:00:05</Duration>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://example.com/pod/bumper/start]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://example.com/pod/bumper/complete]]></Tracking>
+            </TrackingEvents>
+            <MediaFiles>
+              <MediaFile delivery="progressive" type="video/mp4" width="640" height="360" bitrate="800"><![CDATA[/fixtures/video/360p30.mp4]]></MediaFile>
+            </MediaFiles>
+            <AdParameters><![CDATA[{"slot":"bumper"}]]></AdParameters>
+          </Linear>
+        </Creative>
+      </Creatives>
+    </InLine>
+  </Ad>
+  <Ad id="pod-simid" sequence="2">
+    <InLine>
+      <AdSystem version="1.0">vastlint-demo</AdSystem>
+      <AdServingId>pod-simid</AdServingId>
+      <AdTitle>Pod SIMID</AdTitle>
+      <Impression><![CDATA[https://example.com/pod/simid/impression]]></Impression>
+      <Creatives>
+        <Creative id="pod-simid-creative" sequence="1">
+          <Linear>
+            <Duration>00:00:15</Duration>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://example.com/pod/simid/start]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://example.com/pod/simid/complete]]></Tracking>
+            </TrackingEvents>
+            <VideoClicks>
+              <ClickThrough><![CDATA[https://example.com/clickthrough]]></ClickThrough>
+            </VideoClicks>
+            <MediaFiles>
+              <MediaFile delivery="progressive" type="video/mp4" width="640" height="360" bitrate="800"><![CDATA[/fixtures/video/bbb-360p.mp4]]></MediaFile>
+              <InteractiveCreativeFile type="text/html" apiFramework="SIMID" variableDuration="false"><![CDATA[/fixtures/simid/overlay-banner.html]]></InteractiveCreativeFile>
+            </MediaFiles>
+            <AdParameters><![CDATA[{"headline":"Second ad in the pod","cta":"Learn more"}]]></AdParameters>
+          </Linear>
+        </Creative>
+      </Creatives>
+    </InLine>
+  </Ad>
+</VAST>
