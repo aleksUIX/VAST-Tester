@@ -11,6 +11,10 @@ const PLAYER_STOPPED = "SIMID:Player:adStopped";
 const PLAYER_FATAL = "SIMID:Player:fatalError";
 const PLAYER_LOG = "SIMID:Player:log";
 const PLAYER_RESIZE = "SIMID:Player:resize";
+const PLAYER_BACKGROUND = "SIMID:Player:appBackgrounded";
+const PLAYER_FOREGROUND = "SIMID:Player:appForegrounded";
+const PLAYER_COLLAPSE = "SIMID:Player:collapseNonlinear";
+const INIT_RESOLVE_MS = 8000;
 const MEDIA_PREFIX = "SIMID:Media:";
 const DEFAULT_SKIP_OFFSET_SEC = 5;
 
@@ -116,6 +120,10 @@ export class SimidPlayer {
   private started = false;
   private stopped = false;
   private sessionTimer: number | null = null;
+  private initTimer: number | null = null;
+  private initMessageId: number | null = null;
+  private startMessageId: number | null = null;
+  private sentTypes = new Map<number, string>();
   private epoch = 0;
   private startedAt = 0;
   private rejectNext = false;
@@ -165,10 +173,14 @@ export class SimidPlayer {
       window.clearTimeout(this.sessionTimer);
       this.sessionTimer = null;
     }
+    this.clearInitTimer();
     this.iframe = null;
     this.sessionId = null;
     this.started = false;
     this.stopped = false;
+    this.initMessageId = null;
+    this.startMessageId = null;
+    this.sentTypes.clear();
     this.nextMessageId = 0;
     this.startedAt = 0;
     this.rejectNext = false;
@@ -178,12 +190,12 @@ export class SimidPlayer {
   }
 
   startCreative() {
-    if (!this.sessionId || this.started || this.stopped) {
+    if (!this.sessionId || this.started || this.stopped || this.initMessageId !== null) {
       return;
     }
     this.started = true;
     this.startedAt = Date.now();
-    this.send(PLAYER_START, {});
+    this.startMessageId = this.send(PLAYER_START, {});
     this.callbacks.onStep("started", "Sent SIMID:Player:startCreative.");
     const video = this.host.getVideo();
     if (!video) {
@@ -225,11 +237,27 @@ export class SimidPlayer {
     if (!this.sessionId || this.stopped) {
       return;
     }
+    const mediaDimensions = this.host.getStageSize();
     this.send(PLAYER_RESIZE, {
-      videoDimensions: this.host.getStageSize(),
+      mediaDimensions,
+      videoDimensions: mediaDimensions,
       creativeDimensions: this.host.getCreativeSize(),
       fullscreen: this.fullscreen,
     });
+  }
+
+  appBackgrounded() {
+    if (!this.sessionId || this.stopped) {
+      return;
+    }
+    this.send(PLAYER_BACKGROUND, {});
+  }
+
+  appForegrounded() {
+    if (!this.sessionId || this.stopped) {
+      return;
+    }
+    this.send(PLAYER_FOREGROUND, {});
   }
 
   sendMedia(event: string, args: Record<string, unknown> = {}) {
@@ -276,6 +304,9 @@ export class SimidPlayer {
   }
 
   collapseCreative() {
+    if (this.sessionId && !this.stopped) {
+      this.send(PLAYER_COLLAPSE, {});
+    }
     const stage = this.host.getStageSize();
     const width = Number(this.surface.width);
     const height = Number(this.surface.height);
@@ -324,6 +355,7 @@ export class SimidPlayer {
       return;
     }
     if (message.type === RESOLVE || message.type === REJECT) {
+      this.handleAck(message);
       return;
     }
 
@@ -537,22 +569,24 @@ export class SimidPlayer {
       fullscreen: false,
       fullscreenAllowed: true,
       variableDurationAllowed: this.surface.variableDuration === "true",
-      skippable: true,
-      skippableState: "playerHandles",
-      skipoffset: this.skipOffsetSec,
+      skippableState: "adHandles",
+      skipoffset: formatSkipoffset(this.skipOffsetSec),
       version: this.protocolVersion,
       siteId: "iab-tech-lab-vast-tester",
       siteUrl: typeof location === "object" ? location.host : "",
       appId: "",
+      useragent: typeof navigator === "object" ? navigator.userAgent : "",
       muted: video?.muted ?? true,
       volume: video?.volume ?? 1,
-      navigationSupport: "undetermined",
-      closeButton: false,
+      navigationSupport: "playerHandles",
+      closeButtonSupport: "adHandles",
+      ...(this.surface.role === "simid-nonlinear" ? { nonlinearDuration: duration } : {}),
     };
     const creativeData = {
       adParameters: this.surface.adParameters ?? this.host.adParameters ?? "",
       duration,
       clickThruUrl: clickThru,
+      clickThruUri: clickThru,
       clickThroughUrl: clickThru,
     };
     const initArgs = {
@@ -560,9 +594,58 @@ export class SimidPlayer {
       creativeData,
     };
     this.lastInit = initArgs;
-    this.send(PLAYER_INIT, initArgs);
-    this.callbacks.onStep("init", "Sent SIMID:Player:init.");
-    this.callbacks.onStep("ready", "Session established. Waiting to start the creative.");
+    const epoch = this.epoch;
+    this.initMessageId = this.send(PLAYER_INIT, initArgs);
+    this.clearInitTimer();
+    this.initTimer = window.setTimeout(() => {
+      if (epoch !== this.epoch || this.initMessageId === null || this.stopped) {
+        return;
+      }
+      this.callbacks.onLog({
+        direction: "note",
+        type: PLAYER_INIT,
+        detail: "Creative did not resolve SIMID:Player:init.",
+      });
+      this.finish("failed", "Creative did not resolve SIMID:Player:init.");
+    }, INIT_RESOLVE_MS);
+    this.callbacks.onStep("init", "Sent SIMID:Player:init. Waiting for resolve.");
+  }
+
+  private clearInitTimer() {
+    if (this.initTimer !== null) {
+      window.clearTimeout(this.initTimer);
+      this.initTimer = null;
+    }
+  }
+
+  private handleAck(message: SimidPlayerMessage) {
+    const ackedId = Number(message.args.messageId);
+    const ackedType = Number.isFinite(ackedId) ? this.sentTypes.get(ackedId) ?? "" : "";
+    const quiet = ackedType === PLAYER_RESIZE || ackedType === PLAYER_LOG || ackedType.startsWith(MEDIA_PREFIX);
+    if (!quiet) {
+      const rejected = message.type === REJECT;
+      this.log(
+        "in",
+        message.type,
+        rejected
+          ? `reject ${ackedType || "message"}: ${rejectText(message.args.value)}`
+          : `resolve ${ackedType || "message"}`,
+        stringifyArgs(message.args),
+      );
+    }
+    if (ackedId !== this.initMessageId) {
+      if (ackedId === this.startMessageId && message.type === REJECT) {
+        this.finish("failed", `Creative rejected SIMID:Player:startCreative. ${rejectText(message.args.value)}`);
+      }
+      return;
+    }
+    this.clearInitTimer();
+    this.initMessageId = null;
+    if (message.type === REJECT) {
+      this.finish("failed", `Creative rejected SIMID:Player:init. ${rejectText(message.args.value)}`);
+      return;
+    }
+    this.callbacks.onStep("ready", "Creative resolved SIMID:Player:init.");
   }
 
   private mediaState(): Record<string, unknown> {
@@ -600,28 +683,51 @@ export class SimidPlayer {
     });
   }
 
-  private send(type: string, args: Record<string, unknown>) {
+  private send(type: string, args: Record<string, unknown>): number {
+    const messageId = this.nextMessageId;
+    this.nextMessageId += 1;
+    this.sentTypes.set(messageId, type);
     const target = this.iframe?.contentWindow;
     if (!target) {
-      return;
+      return messageId;
     }
     const message: SimidPlayerMessage = {
       sessionId: this.sessionId ?? "",
-      messageId: this.nextMessageId,
+      messageId,
       timestamp: Date.now(),
       type,
       args,
     };
-    this.nextMessageId += 1;
     target.postMessage(JSON.stringify(message), "*");
     if (type !== RESOLVE && type !== REJECT && type !== `${MEDIA_PREFIX}timeupdate`) {
       this.log("out", type, summarize(args), stringifyArgs(args));
     }
+    return messageId;
   }
 
   private log(direction: SimidLogEntry["direction"], type: string, detail: string, payload?: string) {
     this.callbacks.onLog({ direction, type, detail, payload });
   }
+}
+
+function formatSkipoffset(seconds: number): string {
+  const total = Math.max(0, Math.round(seconds));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const secs = total % 60;
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${pad(hours)}:${pad(minutes)}:${pad(secs)}`;
+}
+
+function rejectText(value: unknown): string {
+  if (!value || typeof value !== "object") {
+    return "no reason";
+  }
+  const record = value as Record<string, unknown>;
+  const reason = record.message ?? record.reason ?? record.errorMessage;
+  const code = record.errorCode;
+  const text = typeof reason === "string" && reason.length > 0 ? reason : "no reason";
+  return typeof code === "number" ? `${String(code)} ${text}` : text;
 }
 
 function stringifyArgs(args: Record<string, unknown> | undefined): string {

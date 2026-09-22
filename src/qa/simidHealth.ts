@@ -63,6 +63,9 @@ const COVERAGE: { type: string; side: "in" | "out"; aliases?: string[] }[] = [
   { type: "SIMID:Player:init", side: "out" },
   { type: "SIMID:Player:startCreative", side: "out" },
   { type: "SIMID:Player:resize", side: "out" },
+  { type: "SIMID:Player:collapseNonlinear", side: "out" },
+  { type: "SIMID:Player:appBackgrounded", side: "out" },
+  { type: "SIMID:Player:appForegrounded", side: "out" },
   { type: "SIMID:Creative:getMediaState", side: "in" },
   { type: "SIMID:Creative:requestPause", side: "in" },
   { type: "SIMID:Creative:requestPlay", side: "in" },
@@ -257,7 +260,23 @@ export function diagnoseSimidSession(input: SimidHealthInput): SimidHealthReport
     }
   }
 
-  if (input.step === "failed" && createSession) {
+  const initUnresolved = input.log.some((entry) => /did not resolve SIMID:Player:init/i.test(entry.detail));
+  const initRejected = input.log.some((entry) => /reject SIMID:Player:init/i.test(entry.detail));
+  if (initUnresolved) {
+    pushHeal(heals, {
+      id: "init-resolve",
+      severity: "fail",
+      title: "Creative did not resolve Player:init",
+      fix: "Reply to Player:init with resolve and the player's messageId. This host waits for that ack before startCreative.",
+    });
+  } else if (initRejected) {
+    pushHeal(heals, {
+      id: "init-reject",
+      severity: "fail",
+      title: "Creative rejected Player:init",
+      fix: "Read the reject errorCode in the protocol log. This host does not send startCreative after a reject.",
+    });
+  } else if (input.step === "failed" && createSession) {
     pushHeal(heals, {
       id: "fatal",
       severity: "fail",
@@ -367,9 +386,13 @@ export function diagnoseSimidSession(input: SimidHealthInput): SimidHealthReport
   let status: SimidHealthStatus = "idle";
   let headline = "No SIMID session yet.";
 
-  if (input.step === "waiting-session" || input.step === "init") {
+  if (input.step === "waiting-session") {
     status = "waiting";
     headline = "Waiting for createSession.";
+  }
+  if (input.step === "init") {
+    status = "waiting";
+    headline = "Waiting for the creative to resolve Player:init.";
   }
   if (input.step === "ready") {
     status = "held";

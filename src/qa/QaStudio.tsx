@@ -820,6 +820,12 @@ export function OverlayStage({
           <button className="ghost" onClick={() => playerRef.current?.collapseCreative()} type="button">
             Collapse overlay
           </button>
+          <button className="ghost" onClick={() => playerRef.current?.appBackgrounded()} type="button">
+            App background
+          </button>
+          <button className="ghost" onClick={() => playerRef.current?.appForegrounded()} type="button">
+            App foreground
+          </button>
           <button className="ghost" onClick={() => playerRef.current?.setHostFullscreen(!simidFullscreen)} type="button">
             {simidFullscreen ? "Exit fullscreen" : "Fullscreen"}
           </button>
