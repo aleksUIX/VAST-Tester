@@ -74,40 +74,40 @@ export const PLAYER_PROFILES: readonly PlayerProfile[] = [
   {
     id: "exoplayer",
     label: "ExoPlayer",
-    summary: "Android: HLS then DASH then MP4, no WebM, no VPAID, SIMID off, OM SDK.",
+    summary: "Android media pick is HLS, then DASH, then MP4, with no WebM and no VPAID. This studio still runs the SIMID handshake.",
     supportedMimeTypes: ["video/mp4", "application/x-mpegURL", "application/dash+xml"],
     preferredMimeTypes: ["application/x-mpegURL", "application/dash+xml", "video/mp4"],
     preferredDelivery: ["streaming", "progressive"],
     targetWidth: 1920,
     targetHeight: 1080,
     vpaid: false,
-    simid: "off",
+    simid: "1.1",
     omid: true,
   },
   {
     id: "fire-tv",
     label: "Fire TV",
-    summary: "Fire OS: HLS then MP4, no WebM, no VPAID, SIMID off, OM SDK.",
+    summary: "Fire OS media pick is HLS, then MP4, with no WebM and no VPAID. This studio still runs the SIMID handshake.",
     supportedMimeTypes: ["video/mp4", "application/x-mpegURL"],
     preferredMimeTypes: ["application/x-mpegURL", "video/mp4"],
     preferredDelivery: ["streaming", "progressive"],
     targetWidth: 1920,
     targetHeight: 1080,
     vpaid: false,
-    simid: "off",
+    simid: "1.1",
     omid: true,
   },
   {
     id: "roku-raf",
     label: "Roku RAF",
-    summary: "HLS then MP4, no WebM, no VPAID, SIMID off, OM SDK.",
+    summary: "Roku RAF media pick is HLS, then MP4, with no WebM and no VPAID. This studio still runs the SIMID handshake.",
     supportedMimeTypes: ["video/mp4", "application/x-mpegURL"],
     preferredMimeTypes: ["application/x-mpegURL", "video/mp4"],
     preferredDelivery: ["streaming", "progressive"],
     targetWidth: 1920,
     targetHeight: 1080,
     vpaid: false,
-    simid: "off",
+    simid: "1.1",
     omid: true,
   },
   {
@@ -305,6 +305,19 @@ export function evaluatePlayerMedia(
 export function isStreamingMime(mimeType: string): boolean {
   const mime = mimeType.toLowerCase();
   return mime === "application/x-mpegurl" || mime === "application/dash+xml" || mime === "application/vnd.apple.mpegurl";
+}
+
+function isBrowserVideoMime(mimeType: string): boolean {
+  return /^video\/(mp4|webm)$/i.test(mimeType.trim());
+}
+
+export function browserStageFile(evaluation: PlayerMediaEvaluation): PlayerMediaFile | null {
+  const selected = evaluation.selected;
+  if (selected && isBrowserVideoMime(selected.mimeType)) {
+    return selected;
+  }
+  const rows = evaluation.rows.filter((row) => row.status !== "dropped" && isBrowserVideoMime(row.file.mimeType));
+  return rows.find((row) => row.file.mimeType.toLowerCase().includes("mp4"))?.file ?? rows[0]?.file ?? null;
 }
 
 export function simidVersionForProfile(profile: PlayerProfile): SimidProtocolVersion {

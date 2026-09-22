@@ -1,6 +1,7 @@
 import {
   PLAYER_PROFILES,
   isStreamingMime,
+  simidVersionForProfile,
   type PlayerMediaEvaluation,
   type PlayerProfile,
 } from "./playerProfiles";
@@ -18,6 +19,7 @@ export function PlayerProfilePanel({
 }) {
   const selected = evaluation.selected;
   const streaming = selected ? isStreamingMime(selected.mimeType) : false;
+  const hostSimid = simidVersionForProfile(profile);
   const playableCount = evaluation.rows.filter((row) => row.status === "playable").length;
   const rankingLabel = selected
     ? `${selected.mimeType || "media"} picked${playableCount > 0 ? ` · ${String(playableCount)} playable` : ""}`
@@ -51,7 +53,12 @@ export function PlayerProfilePanel({
       </div>
       {compact ? null : <p className="omid-panel-copy">{profile.summary}</p>}
       <div className="omid-event-row">
-        <span className="runtime-chip">SIMID {profile.simid}</span>
+        <span
+          className="runtime-chip"
+          title={`This studio speaks SIMID ${hostSimid} on every profile. The dropdown only ranks media files.`}
+        >
+          SIMID {hostSimid}
+        </span>
         <span className="runtime-chip">{profile.omid ? "OM SDK" : "no OM SDK"}</span>
         <span className="runtime-chip">{profile.vpaid ? "VPAID on" : "VPAID off"}</span>
         <span className="pill muted">{profile.targetWidth}x{profile.targetHeight}</span>

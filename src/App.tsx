@@ -66,6 +66,7 @@ import {
 import { PlayerProfilePanel } from "./qa/PlayerProfilePanel";
 import {
   DEFAULT_PLAYER_PROFILE_ID,
+  browserStageFile,
   collectPlayerMediaFiles,
   evaluatePlayerMedia,
   mediaSelectionOptions,
@@ -2479,7 +2480,10 @@ function App() {
     () => buildPlayableMediaUrl(runnerSnapshot.mediaSelection.selected?.url ?? null),
     [runnerSnapshot.mediaSelection.selected?.url],
   );
-  const stageMediaUrl = runnerMediaUrl ?? resolveQaAssetUrl(creativeSurfaces.stageVideoUrl);
+  const stageMediaUrl =
+    buildPlayableMediaUrl(browserStageFile(playerMediaEvaluation)?.url ?? null)
+    ?? runnerMediaUrl
+    ?? resolveQaAssetUrl(creativeSurfaces.stageVideoUrl);
   const macroPresets = useMemo(
     () => buildMacroPresetDefinitions(
       macroDefaultsRef.current,
@@ -4278,7 +4282,6 @@ function App() {
                     onSimidLog={(title, detail) => appendRunnerTimeline("simid", title, detail)}
                     keepLogVisible={simidStudioOpen}
                     studioExpanded={simidStudioOpen}
-                    simidEnabled={playerProfile.simid !== "off"}
                     simidVersion={simidVersionForProfile(playerProfile)}
                     playerProfile={playerProfile}
                     surfaces={creativeSurfaces}
