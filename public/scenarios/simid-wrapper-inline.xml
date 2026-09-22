@@ -13,6 +13,7 @@
             <Duration>00:00:15</Duration>
             <TrackingEvents>
               <Tracking event="start"><![CDATA[https://example.com/inline/start]]></Tracking>
+              <Tracking event="interactiveStart"><![CDATA[https://example.com/inline/interactive-start]]></Tracking>
               <Tracking event="complete"><![CDATA[https://example.com/inline/complete]]></Tracking>
             </TrackingEvents>
             <VideoClicks>

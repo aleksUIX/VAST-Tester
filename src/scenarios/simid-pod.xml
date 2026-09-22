@@ -8,6 +8,7 @@
       <Impression><![CDATA[https://example.com/pod/bumper/impression]]></Impression>
       <Creatives>
         <Creative id="pod-bumper-creative" sequence="1">
+          <UniversalAdId idRegistry="Ad-ID">POD-BUMPER-1</UniversalAdId>
           <Linear>
             <Duration>00:00:05</Duration>
             <TrackingEvents>
@@ -16,6 +17,7 @@
             </TrackingEvents>
             <MediaFiles>
               <MediaFile delivery="progressive" type="video/mp4" width="640" height="360" bitrate="800"><![CDATA[/fixtures/video/360p30.mp4]]></MediaFile>
+              <Mezzanine delivery="progressive" type="video/mp4" width="3840" height="2160"><![CDATA[https://example.com/mezzanine/pod-bumper-4k.mp4]]></Mezzanine>
             </MediaFiles>
             <AdParameters><![CDATA[{"slot":"bumper"}]]></AdParameters>
           </Linear>
@@ -31,10 +33,12 @@
       <Impression><![CDATA[https://example.com/pod/simid/impression]]></Impression>
       <Creatives>
         <Creative id="pod-simid-creative" sequence="1">
+          <UniversalAdId idRegistry="Ad-ID">POD-SIMID-2</UniversalAdId>
           <Linear>
             <Duration>00:00:15</Duration>
             <TrackingEvents>
               <Tracking event="start"><![CDATA[https://example.com/pod/simid/start]]></Tracking>
+              <Tracking event="interactiveStart"><![CDATA[https://example.com/pod/simid/interactive-start]]></Tracking>
               <Tracking event="complete"><![CDATA[https://example.com/pod/simid/complete]]></Tracking>
             </TrackingEvents>
             <VideoClicks>
@@ -42,7 +46,8 @@
             </VideoClicks>
             <MediaFiles>
               <MediaFile delivery="progressive" type="video/mp4" width="640" height="360" bitrate="800"><![CDATA[/fixtures/video/bbb-360p.mp4]]></MediaFile>
-              <InteractiveCreativeFile type="text/html" apiFramework="SIMID" variableDuration="false"><![CDATA[/fixtures/simid/overlay-banner.html]]></InteractiveCreativeFile>
+              <Mezzanine delivery="progressive" type="video/mp4" width="3840" height="2160"><![CDATA[https://example.com/mezzanine/pod-simid-4k.mp4]]></Mezzanine>
+              <InteractiveCreativeFile type="text/html" apiFramework="SIMID"><![CDATA[/fixtures/simid/overlay-banner.html]]></InteractiveCreativeFile>
             </MediaFiles>
             <AdParameters><![CDATA[{"headline":"Second ad in the pod","cta":"Learn more"}]]></AdParameters>
           </Linear>

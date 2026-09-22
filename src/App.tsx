@@ -4371,6 +4371,13 @@ function App() {
                         onLoadedMetadata={() =>
                           appendRunnerTimeline("media", "video:metadata", "Loaded media metadata into the playback runner.")
                         }
+                        onLoadedData={() => {
+                          const video = runnerVideoRef.current;
+                          if (!video || creativeSurfaces.simid.length === 0 || !video.paused) {
+                            return;
+                          }
+                          void video.play().catch(() => undefined);
+                        }}
                         onPause={() => void handleRunnerPause()}
                         onPlay={() => void handleRunnerPlay()}
                         onTimeUpdate={() => void handleRunnerTimeUpdate()}
