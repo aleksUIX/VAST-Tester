@@ -26,8 +26,8 @@
               </Icon>
             </Icons>
             <MediaFiles>
-              <MediaFile delivery="progressive" type="video/mp4" width="640" height="360" bitrate="800"><![CDATA[/fixtures/video/bbb-360p.mp4]]></MediaFile>
-              <MediaFile delivery="progressive" type="video/webm" width="640" height="360" bitrate="600"><![CDATA[/fixtures/video/bbb-360p.webm]]></MediaFile>
+              <MediaFile delivery="progressive" type="video/mp4" width="640" height="360" bitrate="800"><![CDATA[https://example.com/fixtures/video/bbb-360p.mp4]]></MediaFile>
+              <MediaFile delivery="progressive" type="video/webm" width="640" height="360" bitrate="600"><![CDATA[https://example.com/fixtures/video/bbb-360p.webm]]></MediaFile>
               <Mezzanine delivery="progressive" type="video/mp4" width="3840" height="2160"><![CDATA[https://example.com/mezzanine/simid-source-4k.mp4]]></Mezzanine>
               <InteractiveCreativeFile type="text/html" apiFramework="SIMID" variableDuration="true"><![CDATA[/fixtures/simid/integration-choice.html]]></InteractiveCreativeFile>
             </MediaFiles>
