@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode, Ref } from "react";
 import JSZip from "jszip";
+import { fetchVastDocument } from "./fetchVastDocument";
 import { useVastPlayback, useVastSession, useVastTracker } from "vastlint-react";
-import { recordUsageSample } from "./collectSample";
-import { SampleNote } from "./SampleNote";
 import adIdentityXml from "./scenarios/ad-identity.xml?raw";
 import adVerificationXml from "./scenarios/ad-verification.xml?raw";
 import brokenXml from "./scenarios/broken-tag.xml?raw";
@@ -26,6 +25,7 @@ import simidIabExtenderXml from "./scenarios/simid-iab-extender.xml?raw";
 import simidIabOverlayXml from "./scenarios/simid-iab-overlay.xml?raw";
 import simidIabSurveyXml from "./scenarios/simid-iab-survey.xml?raw";
 import simidIabTestersNonlinearXml from "./scenarios/simid-iab-testers-nonlinear.xml?raw";
+import simidPodXml from "./scenarios/simid-pod.xml?raw";
 import simidProtocolExplorerXml from "./scenarios/simid-protocol-explorer.xml?raw";
 import skippableLinearXml from "./scenarios/skippable-linear.xml?raw";
 import ctvPortfolio2PauseXml from "./scenarios/ctv-portfolio-2-pause.xml?raw";
@@ -53,10 +53,20 @@ import { OmidPanel } from "./qa/OmidPanel";
 import { OmidSessionHost } from "./qa/omidSession";
 import { emptyOmidSnapshot, type OmidAccessMode, type OmidSessionSnapshot } from "./qa/omidTypes";
 import { collectOmidScripts, readLinearSkipoffset } from "./qa/parseVerifications";
-import { parseCreativeSurfaces } from "./qa/parseCreativeSurfaces";
+import { parseAdSlots, parseCreativeSurfaces, resolvedStudioXml } from "./qa/parseCreativeSurfaces";
+import { DestinationPanel, DestinationSelect } from "./qa/destinations/DestinationPanel";
+import {
+  NONE_DESTINATION_ID,
+  destinationPackById,
+  evaluateDestination,
+  isDestinationPackId,
+  probeDestinationBitrates,
+  type DestinationFinding,
+} from "./qa/destinations";
 import { PlayerProfilePanel } from "./qa/PlayerProfilePanel";
 import {
   DEFAULT_PLAYER_PROFILE_ID,
+  browserStageFile,
   collectPlayerMediaFiles,
   evaluatePlayerMedia,
   mediaSelectionOptions,
@@ -141,6 +151,7 @@ interface SharedSessionState {
   payload: string;
   activeScenarioId: string | null;
   selectedComplianceProfileId: ComplianceProfileId | null;
+  selectedDestinationPackId: string | null;
 }
 
 interface TimelineEntry {
@@ -570,6 +581,28 @@ const SCENARIO_PRESETS: readonly ScenarioPreset[] = [
     payload: simidIabTestersNonlinearXml,
   },
   {
+    id: "simid-wrapper-chain",
+    label: "SIMID behind a wrapper",
+    description: "The wrapper carries tracking only. Resolve it and the studio handshakes the inline, which also carries a mezzanine, OMID, icons, and AdParameters.",
+    groupId: "simid",
+    versionLabel: "VAST 4.2",
+    focusAreas: ["simid", "wrapper", "resolve", "mezzanine", "omid"],
+    sourceMode: "url",
+    action: "resolve",
+    payload: "/scenarios/simid-wrapper.xml",
+  },
+  {
+    id: "simid-pod",
+    label: "Bumper then SIMID",
+    description: "A two-ad pod. The bumper has no InteractiveCreativeFile, and the second ad opens the SIMID handshake with its own AdParameters.",
+    groupId: "simid",
+    versionLabel: "VAST 4.2",
+    focusAreas: ["simid", "pod", "sequence"],
+    sourceMode: "xml",
+    action: "validate",
+    payload: simidPodXml,
+  },
+  {
     id: "click-tracking",
     label: "Click tracking",
     description: "Video click-through, click tracking, and custom click URLs in one linear ad.",
@@ -820,7 +853,7 @@ const SCENARIO_GROUPS: readonly ScenarioGroupDefinition[] = [
   {
     id: "simid",
     label: "SIMID interactive",
-    description: "InteractiveCreativeFile overlays: in-house samples plus IAB Tech Lab overlay, survey, extender, and nonlinear testers.",
+    description: "InteractiveCreativeFile overlays, including a wrapper hop and a bumper-then-SIMID pod, plus IAB Tech Lab overlay, survey, extender, and nonlinear testers.",
   },
   {
     id: "measurement",
@@ -919,30 +952,13 @@ function buildScenarioFixtureUrl(path: string) {
     return buildLocalAssetUrl(normalizedPath);
   }
 
-  const fallbackOrigin = branding.scenarioFallbackOrigin ?? DEFAULT_APP_ORIGIN;
+  const fallbackOrigin = "https://example.com";
   return new URL(normalizedPath, fallbackOrigin).toString();
 }
 
 function absolutizeScenarioXmlLocalUrls(xml: string) {
   return xml.replace(/<!\[CDATA\[(\/[^\]]*)\]\]>/g, (_match, path: string) => {
     return `<![CDATA[${buildScenarioFixtureUrl(path)}]]>`;
-  });
-}
-
-function isBuiltInRun(run: { sourceMode: SourceMode; payload: string }, scenarioId: string | null): boolean {
-  if (scenarioId) return true;
-  const payload = run.payload.trim();
-  if (!payload) return true;
-  if (run.sourceMode === "url") {
-    if (payload.includes("/scenarios/")) return true;
-    return SCENARIO_PRESETS.some((scenario) => {
-      if (scenario.sourceMode !== "url") return false;
-      return scenario.payload === payload || buildScenarioFixtureUrl(scenario.payload) === payload;
-    });
-  }
-  return SCENARIO_PRESETS.some((scenario) => {
-    if (scenario.sourceMode !== "xml") return false;
-    return scenario.payload.trim() === payload || absolutizeScenarioXmlLocalUrls(scenario.payload).trim() === payload;
   });
 }
 
@@ -1101,6 +1117,9 @@ function readSharedSessionState(): SharedSessionState | null {
       activeScenarioId: typeof parsed.activeScenarioId === "string" ? parsed.activeScenarioId : null,
       selectedComplianceProfileId: isComplianceProfileId(parsed.selectedComplianceProfileId)
         ? parsed.selectedComplianceProfileId
+        : null,
+      selectedDestinationPackId: isDestinationPackId(parsed.selectedDestinationPackId)
+        ? parsed.selectedDestinationPackId
         : null,
     };
   } catch {
@@ -1804,6 +1823,7 @@ function buildArtifactReadme(
   scenarioLabel: string | null,
   macroPreset: MacroPresetDefinition | null,
   complianceProfile: ComplianceProfileVerdict | null,
+  destinationLabel: string | null,
   waterfallCount: number,
   timelineCount: number,
   assetCount: number,
@@ -1813,6 +1833,7 @@ function buildArtifactReadme(
     `Scenario: ${scenarioLabel ?? "Custom input"}`,
     `Macro preset: ${macroPreset?.label ?? "Custom"}`,
     `Compliance lens: ${complianceProfile ? `${complianceProfile.label} (${complianceProfile.status})` : "n/a"}`,
+    `Destination: ${destinationLabel ?? "none"}`,
     `Tracking rows: ${String(waterfallCount)}`,
     `Timeline entries: ${String(timelineCount)}`,
     `Asset audit rows: ${String(assetCount)}`,
@@ -1821,7 +1842,7 @@ function buildArtifactReadme(
     "- report.txt / report.json: current validation summary",
     "- source/: original XML or URL references and optional fixed XML",
     "- runtime/: playback snapshot, timeline, macro set, and tracking waterfall",
-    "- validation/: wrapper chain, compliance verdicts, asset audit, and resolved-ad metadata",
+    "- validation/: wrapper chain, compliance verdicts, destination pack, asset audit, and resolved-ad metadata",
   ].join("\n");
 }
 
@@ -1838,7 +1859,7 @@ function buildTrackingFetch(documentUrls: readonly string[]): typeof fetch {
     const looksLikeDocument = documentUrlSet.has(normalizedUrl) || /\.xml(?:$|[?#])/i.test(normalizedUrl);
 
     if (looksLikeDocument) {
-      return globalThis.fetch(input, init);
+      return fetchVastDocument(input, init);
     }
 
     return new Response(null, {
@@ -1846,49 +1867,6 @@ function buildTrackingFetch(documentUrls: readonly string[]): typeof fetch {
       statusText: "No Content",
     });
   };
-}
-
-async function fetchVastDocumentWithProxyFallback(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const targetUrl = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
-
-  try {
-    const response = await globalThis.fetch(input, init);
-    if (response.ok) {
-      const text = await response.text();
-      if (text.trim().startsWith("<")) {
-        return new Response(text, { status: response.status, statusText: response.statusText, headers: response.headers });
-      }
-      throw new Error("Direct fetch returned a non-XML response");
-    }
-  } catch (error) {
-    if (!branding.vastProxyEndpoint) {
-      throw error instanceof Error ? error : new Error("Direct fetch failed");
-    }
-    // Fall through to the proxy below. Direct browser fetch failed or was intercepted.
-  }
-
-  if (!branding.vastProxyEndpoint) {
-    throw new Error("Direct fetch failed and no VAST proxy is configured");
-  }
-
-  const proxyResponse = await globalThis.fetch(`${branding.vastProxyEndpoint}?url=${encodeURIComponent(targetUrl)}`, {
-    signal: init?.signal ?? undefined,
-  });
-
-  if (!proxyResponse.ok) {
-    let message = `Proxy fetch failed with HTTP ${proxyResponse.status}`;
-    try {
-      const errorBody = (await proxyResponse.json()) as { error?: unknown };
-      if (typeof errorBody.error === "string") {
-        message = errorBody.error;
-      }
-    } catch {
-      // Proxy error body wasn't JSON — keep the default message.
-    }
-    throw new Error(message);
-  }
-
-  return proxyResponse;
 }
 
 function buildPlayableMediaUrl(mediaUrl: string | null) {
@@ -1965,6 +1943,7 @@ function buildReportSummary(
   scenarioLabel: string | null,
   lastFix: FixResult | null,
   activeComplianceVerdict: ComplianceProfileVerdict | null,
+  destinationLabel: string | null,
 ) {
   const lines = [
     "VAST Validator Report",
@@ -1975,6 +1954,7 @@ function buildReportSummary(
     `Version: ${snapshot.validation?.version ?? "unknown"}`,
     `Validity: ${snapshot.validation?.summary.valid ? "valid" : "not valid"}`,
     `Compliance lens: ${activeComplianceVerdict ? `${activeComplianceVerdict.label} (${activeComplianceVerdict.status})` : "n/a"}`,
+    `Destination: ${destinationLabel ?? "none"}`,
     `Counts: ${String(severity.error)} error(s), ${String(severity.warning)} warning(s), ${String(severity.info)} info`,
     `Wrapper hops: ${String(snapshot.wrapperChain.length)}`,
     `Resolved ads: ${String(resolvedAds.length)}`,
@@ -2014,7 +1994,9 @@ function buildErrorClipboardText(
   lastRun: RunRequest,
   scenarioLabel: string | null,
   activeComplianceVerdict: ComplianceProfileVerdict | null,
+  destinationLabel: string | null,
   issues: readonly Issue[],
+  destinationFindings: readonly { id: string; message: string; spec_ref: string; path: string }[],
 ) {
   const errorIssues = issues.filter((issue) => issue.severity === "error");
   const warningCount = issues.filter((issue) => issue.severity === "warning").length;
@@ -2024,6 +2006,7 @@ function buildErrorClipboardText(
     `Source: ${formatRunSource(lastRun)}`,
     `Action: ${lastRun.action}`,
     `Compliance lens: ${activeComplianceVerdict ? `${activeComplianceVerdict.label} (${activeComplianceVerdict.status})` : "n/a"}`,
+    `Destination: ${destinationLabel ?? "none"}`,
     `Exported: ${new Date().toISOString()}`,
     "",
   ];
@@ -2044,6 +2027,15 @@ function buildErrorClipboardText(
   if (warningCount > 0) {
     lines.push("");
     lines.push(`Warnings not included in this export: ${String(warningCount)}`);
+  }
+
+  if (destinationFindings.length > 0) {
+    lines.push("");
+    lines.push(`Destination findings: ${String(destinationFindings.length)}`);
+    for (const item of destinationFindings) {
+      lines.push(`- ${item.id} at ${item.path}: ${item.message}`);
+      lines.push(`  ${item.spec_ref}`);
+    }
   }
 
   return lines.join("\n");
@@ -2172,6 +2164,11 @@ function App() {
   const [omidAccessMode, setOmidAccessMode] = useState<OmidAccessMode>("full");
   const [omidSnapshot, setOmidSnapshot] = useState<OmidSessionSnapshot>(() => emptyOmidSnapshot());
   const [selectedPlayerProfileId, setSelectedPlayerProfileId] = useState(DEFAULT_PLAYER_PROFILE_ID);
+  const [selectedDestinationPackId, setSelectedDestinationPackId] = useState(
+    sharedSession?.selectedDestinationPackId && isDestinationPackId(sharedSession.selectedDestinationPackId)
+      ? sharedSession.selectedDestinationPackId
+      : NONE_DESTINATION_ID,
+  );
   const xmlTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const runnerProgressBucketRef = useRef(-1);
   const macroDefaultsRef = useRef({
@@ -2200,7 +2197,7 @@ function App() {
     autoLoad: false,
     autoValidate: false,
     validateOptions: activeValidateOptions,
-    fetch: fetchVastDocumentWithProxyFallback,
+    fetch: fetchVastDocument,
   });
 
   useEffect(() => {
@@ -2387,18 +2384,69 @@ function App() {
     [resolvedAds, runnerSnapshot.resolvedAd],
   );
   const inspectionXml = snapshot.rootXml ?? (lastRun.sourceMode === "xml" ? lastRun.payload : null);
+  const studioXml = useMemo(
+    () => resolvedStudioXml(inspectionXml, snapshot.wrapperChain),
+    [inspectionXml, snapshot.wrapperChain],
+  );
+  const adSlots = useMemo(() => parseAdSlots(studioXml), [studioXml]);
+  const [adIndex, setAdIndex] = useState(0);
+  useEffect(() => {
+    setAdIndex(0);
+  }, [studioXml]);
+  const slotIndex = adSlots.length === 0 ? 0 : Math.min(adIndex, adSlots.length - 1);
+  const activeSlot = adSlots[slotIndex] ?? null;
+  const creativeSurfaces = activeSlot?.surfaces ?? parseCreativeSurfaces(studioXml);
+  const stageMediaFiles = useMemo(
+    () => collectPlayerMediaFiles(activeSlot?.xml ?? studioXml, []),
+    [activeSlot, studioXml],
+  );
   const playerMediaFiles = useMemo(
     () => collectPlayerMediaFiles(inspectionXml, inventoryAds),
     [inspectionXml, inventoryAds],
   );
   const playerMediaEvaluation = useMemo(
-    () => evaluatePlayerMedia(playerProfile, playerMediaFiles),
-    [playerMediaFiles, playerProfile],
+    () => evaluatePlayerMedia(playerProfile, stageMediaFiles.length > 0 ? stageMediaFiles : playerMediaFiles),
+    [playerMediaFiles, playerProfile, stageMediaFiles],
   );
-  const creativeSurfaces = useMemo(() => parseCreativeSurfaces(inspectionXml), [inspectionXml]);
+  const destinationPack = destinationPackById(selectedDestinationPackId);
+  const destinationLayer1 = useMemo(
+    () => (destinationPack ? evaluateDestination(destinationPack, { xml: inspectionXml, files: playerMediaFiles }) : null),
+    [destinationPack, inspectionXml, playerMediaFiles],
+  );
+  const [destinationProbeFindings, setDestinationProbeFindings] = useState<DestinationFinding[]>([]);
+  useEffect(() => {
+    if (!destinationPack) {
+      setDestinationProbeFindings([]);
+      return;
+    }
+    let cancelled = false;
+    setDestinationProbeFindings([]);
+    void probeDestinationBitrates(destinationPack, inspectionXml, playerMediaFiles).then((findings) => {
+      if (!cancelled) {
+        setDestinationProbeFindings(findings);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [destinationPack, inspectionXml, playerMediaFiles]);
+  const destinationEvaluation = useMemo(() => {
+    if (!destinationLayer1) {
+      return null;
+    }
+    if (destinationProbeFindings.length === 0) {
+      return destinationLayer1;
+    }
+    const findings = [...destinationLayer1.findings, ...destinationProbeFindings];
+    return {
+      ...destinationLayer1,
+      findings,
+      status: findings.some((item) => item.severity === "error") ? "fail" as const : "pass" as const,
+    };
+  }, [destinationLayer1, destinationProbeFindings]);
   const runtimeInspection = useMemo(
-    () => buildRuntimeInspection(inspectionXml, inventoryAds),
-    [inspectionXml, inventoryAds],
+    () => buildRuntimeInspection(studioXml, inventoryAds),
+    [inventoryAds, studioXml],
   );
   const omidScripts = useMemo(
     () => collectOmidScripts(inventoryAds, snapshot.wrapperChain, inspectionXml),
@@ -2409,7 +2457,10 @@ function App() {
     () => buildPlayableMediaUrl(runnerSnapshot.mediaSelection.selected?.url ?? null),
     [runnerSnapshot.mediaSelection.selected?.url],
   );
-  const stageMediaUrl = runnerMediaUrl ?? resolveQaAssetUrl(creativeSurfaces.stageVideoUrl);
+  const stageMediaUrl =
+    buildPlayableMediaUrl(browserStageFile(playerMediaEvaluation)?.url ?? null)
+    ?? runnerMediaUrl
+    ?? resolveQaAssetUrl(creativeSurfaces.stageVideoUrl);
   const macroPresets = useMemo(
     () => buildMacroPresetDefinitions(
       macroDefaultsRef.current,
@@ -2492,8 +2543,18 @@ function App() {
       .slice(0, 16);
   }, [runnerSnapshot.session.events, runnerTimeline, runnerTracker.tracking.history]);
   const reportSummary = useMemo(
-    () => buildReportSummary(lastRun, snapshot, severity, issues, inventoryAds, activeScenario?.label ?? null, lastFix, activeComplianceVerdict),
-    [activeComplianceVerdict, activeScenario?.label, inventoryAds, issues, lastFix, lastRun, severity, snapshot],
+    () => buildReportSummary(
+      lastRun,
+      snapshot,
+      severity,
+      issues,
+      inventoryAds,
+      activeScenario?.label ?? null,
+      lastFix,
+      activeComplianceVerdict,
+      destinationEvaluation ? `${destinationEvaluation.pack.display_name} (${destinationEvaluation.status})` : null,
+    ),
+    [activeComplianceVerdict, activeScenario?.label, destinationEvaluation, inventoryAds, issues, lastFix, lastRun, severity, snapshot],
   );
   const reportData = useMemo(
     () => ({
@@ -2521,6 +2582,17 @@ function App() {
           : null,
         profiles: complianceVerdicts,
       },
+      destination: destinationEvaluation
+        ? {
+            id: destinationEvaluation.pack.id,
+            label: destinationEvaluation.pack.display_name,
+            docs: destinationEvaluation.pack.docs,
+            contract: destinationEvaluation.pack.contract,
+            status: destinationEvaluation.status,
+            findings: destinationEvaluation.findings,
+            assignments: destinationEvaluation.assignments,
+          }
+        : null,
       wrappers: snapshot.wrapperChain.map((hop) => ({
         index: hop.index,
         adType: hop.adType,
@@ -2579,7 +2651,7 @@ function App() {
         omid: omidSnapshot,
       },
     }),
-    [activeComplianceVerdict, activeMacroPreset?.id, activeMacros, activeScenario?.label, assetAuditRows, complianceVerdicts, inventoryAds, issues, lastFix, lastRun, omidSnapshot, playerProfile.id, runnerMediaUrl, runnerSnapshot.clickThroughUrl, runnerSnapshot.fullscreen, runnerSnapshot.milestones, runnerSnapshot.muted, runnerSnapshot.status, runnerSnapshot.viewability, runnerTracker.tracking.history, severity, snapshot, trackingWaterfallRows],
+    [activeComplianceVerdict, activeMacroPreset?.id, activeMacros, activeScenario?.label, assetAuditRows, complianceVerdicts, destinationEvaluation, inventoryAds, issues, lastFix, lastRun, omidSnapshot, playerProfile.id, runnerMediaUrl, runnerSnapshot.clickThroughUrl, runnerSnapshot.fullscreen, runnerSnapshot.milestones, runnerSnapshot.muted, runnerSnapshot.status, runnerSnapshot.viewability, runnerTracker.tracking.history, severity, snapshot, trackingWaterfallRows],
   );
 
   useEffect(() => {
@@ -2670,7 +2742,7 @@ function App() {
     // A one-entry chain is just the root document, not a chain worth opening.
     wrappers: Math.max(0, snapshot.wrapperChain.length - 1),
     resolved: inventoryAds.length,
-    playback: runnerSnapshot.resolvedAd || creativeSurfaces.overlays.length > 0 ? 1 : 0,
+    playback: runnerSnapshot.resolvedAd || creativeSurfaces.overlays.length > 0 || adSlots.length > 1 ? 1 : 0,
     tracking: trackingWaterfallRows.length,
     runtime: runtimeInspection.verificationResources.length
       + runtimeInspection.companions.length
@@ -2680,6 +2752,7 @@ function App() {
     macros: 0,
     export: 0,
   }), [
+    adSlots.length,
     creativeSurfaces.overlays.length,
     inventoryAds.length,
     issues.length,
@@ -2953,7 +3026,14 @@ function App() {
   const copyErrorFindings = async () => {
     try {
       await globalThis.navigator.clipboard.writeText(
-        buildErrorClipboardText(lastRun, activeScenario?.label ?? null, activeComplianceVerdict, issues),
+        buildErrorClipboardText(
+          lastRun,
+          activeScenario?.label ?? null,
+          activeComplianceVerdict,
+          destinationEvaluation ? `${destinationEvaluation.pack.display_name} (${destinationEvaluation.status})` : null,
+          issues,
+          destinationEvaluation?.findings ?? [],
+        ),
       );
       setReportNotice(
         issues.some((issue) => issue.severity === "error")
@@ -2973,6 +3053,7 @@ function App() {
         payload: lastRun.payload,
         activeScenarioId,
         selectedComplianceProfileId,
+        selectedDestinationPackId,
       } satisfies SharedSessionState));
       const shareUrl = new URL(globalThis.location.href);
       shareUrl.hash = new URLSearchParams({ session: sharePayload }).toString();
@@ -3009,6 +3090,7 @@ function App() {
         activeScenario?.label ?? null,
         activeMacroPreset,
         activeComplianceVerdict,
+        destinationEvaluation ? `${destinationEvaluation.pack.display_name} (${destinationEvaluation.status})` : null,
         trackingWaterfallRows.length,
         timelineEntries.length,
         assetAuditRows.length,
@@ -3057,6 +3139,19 @@ function App() {
       activeProfile: activeComplianceVerdict,
       profiles: complianceVerdicts,
     }, null, 2));
+    zip.file("validation/destination.json", JSON.stringify(destinationEvaluation
+      ? {
+          pack: {
+            id: destinationEvaluation.pack.id,
+            display_name: destinationEvaluation.pack.display_name,
+            docs: destinationEvaluation.pack.docs,
+            contract: destinationEvaluation.pack.contract,
+          },
+          status: destinationEvaluation.status,
+          findings: destinationEvaluation.findings,
+          assignments: destinationEvaluation.assignments,
+        }
+      : { pack: null, status: "idle", findings: [] }, null, 2));
     zip.file("validation/asset-audit.json", JSON.stringify(assetAuditRows, null, 2));
 
     const blob = await zip.generateAsync({ type: "blob" });
@@ -3463,8 +3558,6 @@ function App() {
                     if (!raw.trimStart().startsWith("<")) return;
                     setActiveScenarioId(null);
                     setSourceMode("xml");
-                    if (isBuiltInRun({ sourceMode: "xml", payload: raw }, null)) return;
-                    recordUsageSample({ xml: raw });
                   }}
                   onFocus={() => setSourceMode("xml")}
                   onScroll={(event) => setEditorScrollTop(event.currentTarget.scrollTop)}
@@ -3523,16 +3616,12 @@ function App() {
               </button>
             </div>
 
-            <SampleNote />
-
             {runError || snapshot.error ? <div className="banner error">{runError ?? snapshot.error?.message}</div> : null}
 
             {suspectedBlockedFetch ? (
               <div className="banner error">
-                The fetched response was not VAST XML (root element must be &lt;VAST&gt;). This request already retried
-                through the server-side proxy, so either the URL doesn&apos;t point directly at a VAST tag (e.g. it
-                returns VMAP, JSON, or an HTML page), or something is blocking both the direct and proxied fetch. Check
-                your browser&apos;s network tab for the raw response to confirm.
+                The fetched response was not VAST XML (root element must be &lt;VAST&gt;). Check that the URL returns
+                a VAST document and permits browser CORS requests from this origin. You can also paste the XML directly.
               </div>
             ) : null}
 
@@ -3715,10 +3804,30 @@ function App() {
                   {activeComplianceVerdict.label} {activeComplianceVerdict.status}
                 </span>
               ) : null}
+              {destinationEvaluation ? (
+                <span className={`pill profile-${destinationEvaluation.status}`}>
+                  {destinationEvaluation.pack.display_name} {destinationEvaluation.status}
+                </span>
+              ) : null}
               <span className="badge">{displayedIssues.length}</span>
             </>
           }
         >
+          <div className="destination-toolbar" data-destination-toolbar="true">
+            <span className="qa-simid-kicker">Destination</span>
+            <DestinationSelect
+              onPack={(id) => {
+                setSelectedDestinationPackId(id);
+                const next = destinationPackById(id);
+                appendRunnerTimeline(
+                  "ui",
+                  `destination:${id}`,
+                  next ? `${next.display_name}: ${next.summary}` : "No destination pack",
+                );
+              }}
+              packId={selectedDestinationPackId}
+            />
+          </div>
           <div className="lens-row" role="group" aria-label="Compliance lens">
             {complianceVerdicts.map((profile) => (
               <button
@@ -3988,26 +4097,80 @@ function App() {
             data-simid-studio={simidStudioOpen ? "expanded" : "inline"}
             data-simid-present={creativeSurfaces.simid.length > 0 ? "true" : "false"}
           >
-            {creativeSurfaces.simid.length > 0 ? (
-              <div className="simid-studio-bar">
-                <div>
+            <div className="simid-studio-chrome">
+              {adSlots.length > 1 ? (
+                <div className="simid-studio-bar">
+                  <strong>
+                    Ad {slotIndex + 1} of {adSlots.length}
+                    {activeSlot?.title ? ` · ${activeSlot.title}` : ""}
+                  </strong>
+                  <div className="simid-studio-bar-actions">
+                    <button
+                      className="secondary"
+                      disabled={slotIndex === 0}
+                      onClick={() => setAdIndex(slotIndex - 1)}
+                      type="button"
+                    >
+                      Previous ad
+                    </button>
+                    <button
+                      className="secondary"
+                      disabled={slotIndex >= adSlots.length - 1}
+                      onClick={() => setAdIndex(slotIndex + 1)}
+                      type="button"
+                    >
+                      Next ad
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+              {creativeSurfaces.simid.length > 0 ? (
+                <div className="simid-studio-bar">
                   <strong>SIMID studio</strong>
-                  <p>Black stage. Media under the video. Protocol log beside the stage.</p>
+                  <div className="simid-studio-bar-actions">
+                    <button className="secondary" onClick={() => void preparePlaybackRunner()} type="button">
+                      Prepare runner
+                    </button>
+                    <button
+                      className="secondary"
+                      onClick={() => (simidStudioOpen ? setSimidStudioOpen(false) : openSimidStudio())}
+                      type="button"
+                    >
+                      {simidStudioOpen ? "Exit studio" : "Expand studio"}
+                    </button>
+                  </div>
                 </div>
-                <div className="simid-studio-bar-actions">
-                  <button className="secondary" onClick={() => void preparePlaybackRunner()} type="button">
-                    Prepare runner
-                  </button>
-                  <button
-                    className="secondary"
-                    onClick={() => (simidStudioOpen ? setSimidStudioOpen(false) : openSimidStudio())}
-                    type="button"
-                  >
-                    {simidStudioOpen ? "Exit studio" : "Expand studio"}
-                  </button>
-                </div>
-              </div>
-            ) : null}
+              ) : null}
+              <PlayerProfilePanel
+                compact={simidStudioOpen}
+                evaluation={playerMediaEvaluation}
+                onProfile={(id) => {
+                  setSelectedPlayerProfileId(id);
+                  const next = playerProfileById(id);
+                  appendRunnerTimeline(
+                    "ui",
+                    `player:${next.id}`,
+                    `${next.label}: ${next.summary}`,
+                  );
+                }}
+                profile={playerProfile}
+              />
+              {simidStudioOpen ? null : (
+                <DestinationPanel
+                  evaluation={destinationEvaluation}
+                  onPack={(id) => {
+                    setSelectedDestinationPackId(id);
+                    const next = destinationPackById(id);
+                    appendRunnerTimeline(
+                      "ui",
+                      `destination:${id}`,
+                      next ? `${next.display_name}: ${next.summary}` : "No destination pack",
+                    );
+                  }}
+                  packId={selectedDestinationPackId}
+                />
+              )}
+            </div>
           <div className="metric-strip">
             <Metric label="Status" value={runnerSnapshot.status} accent={runnerSnapshot.status === "error" ? "error" : runnerSnapshot.status === "playing" ? "good" : "neutral"} />
             <Metric label="Media" value={runnerSnapshot.mediaSelection.selected?.mimeType ?? "none"} accent="neutral" />
@@ -4018,20 +4181,6 @@ function App() {
             />
             <Metric label="Viewability" value={runnerSnapshot.viewability ?? "not set"} accent="neutral" />
           </div>
-
-          <PlayerProfilePanel
-            evaluation={playerMediaEvaluation}
-            onProfile={(id) => {
-              setSelectedPlayerProfileId(id);
-              const next = playerProfileById(id);
-              appendRunnerTimeline(
-                "ui",
-                `player:${next.id}`,
-                `${next.label}: ${next.summary}`,
-              );
-            }}
-            profile={playerProfile}
-          />
 
           <div className="runner-toolbar">
             <button className="secondary" onClick={() => void preparePlaybackRunner()} type="button">
@@ -4131,7 +4280,6 @@ function App() {
                     onSimidLog={(title, detail) => appendRunnerTimeline("simid", title, detail)}
                     keepLogVisible={simidStudioOpen}
                     studioExpanded={simidStudioOpen}
-                    simidEnabled={playerProfile.simid !== "off"}
                     simidVersion={simidVersionForProfile(playerProfile)}
                     playerProfile={playerProfile}
                     surfaces={creativeSurfaces}
@@ -4139,16 +4287,30 @@ function App() {
                   >
                     {stageMediaUrl ? (
                       <video
+                        key={activeSlot?.id ?? "stage"}
                         ref={runnerVideoRef}
                         className="runner-video"
                         controls={creativeSurfaces.simid.length === 0}
                         crossOrigin="anonymous"
                         muted={runnerAudioMuted}
                         playsInline
-                        onEnded={() => void handleRunnerEnded()}
+                        onEnded={() => {
+                          if (slotIndex + 1 < adSlots.length) {
+                            setAdIndex(slotIndex + 1);
+                            return;
+                          }
+                          void handleRunnerEnded();
+                        }}
                         onLoadedMetadata={() =>
                           appendRunnerTimeline("media", "video:metadata", "Loaded media metadata into the playback runner.")
                         }
+                        onLoadedData={() => {
+                          const video = runnerVideoRef.current;
+                          if (!video || creativeSurfaces.simid.length === 0 || !video.paused) {
+                            return;
+                          }
+                          void video.play().catch(() => undefined);
+                        }}
                         onPause={() => void handleRunnerPause()}
                         onPlay={() => void handleRunnerPlay()}
                         onTimeUpdate={() => void handleRunnerTimeUpdate()}

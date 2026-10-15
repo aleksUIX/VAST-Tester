@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.4" xmlns="http://www.iab.com/VAST">
+  <Ad id="pause-video-001">
+    <InLine>
+      <AdSystem version="4.4">ctv-adserver-demo</AdSystem>
+      <AdServingId>ServerName-pause-4a4b-9c9d</AdServingId>
+      <AdTitle>CTV Ad Portfolio pause ad, video</AdTitle>
+      <Error><![CDATA[https://ctv-adserver-demo.net/error?code=[ERRORCODE]]]></Error>
+      <Impression><![CDATA[https://ctv-adserver-demo.net/imp/pause-video-001]]></Impression>
+      <Creatives>
+        <Creative id="creative-pause-video-001" adId="AD-ID-PAUSE-VIDEO-001">
+          <UniversalAdId idRegistry="Ad-ID">DEMO0008000H</UniversalAdId>
+          <NonLinearAds>
+            <NonLinear id="nl_pause_001" width="1920" height="1080" scalable="true" maintainAspectRatio="true" minSuggestedDuration="00:00:15">
+              <Duration>00:00:15</Duration>
+              <MediaFiles>
+                <MediaFile delivery="progressive" type="video/mp4" width="1920" height="1080" bitrate="4000" codec="h264"><![CDATA[https://ctv-cdn-demo.net/pause/brand-x-pause.mp4]]></MediaFile>
+              </MediaFiles>
+              <NonLinearClickThrough><![CDATA[https://advertiser-demo.net/pause-landing]]></NonLinearClickThrough>
+              <NonLinearClickTracking><![CDATA[https://ctv-adserver-demo.net/click/pause-video-001]]></NonLinearClickTracking>
+            </NonLinear>
+            <TrackingEvents>
+              <Tracking event="creativeView"><![CDATA[https://ctv-adserver-demo.net/track/pause-video/creativeView]]></Tracking>
+              <Tracking event="overlayViewDuration"><![CDATA[https://ctv-adserver-demo.net/track/pause-video/overlayView]]></Tracking>
+              <Tracking event="close"><![CDATA[https://ctv-adserver-demo.net/track/pause-video/close]]></Tracking>
+            </TrackingEvents>
+          </NonLinearAds>
+          <CreativeExtensions>
+            <CreativeExtension type="tl_qrcode">
+              <QrCodeScanUrl><![CDATA[https://advertiser-demo.net/qr/pause-video-001]]></QrCodeScanUrl>
+              <QrCodeImageUrl><![CDATA[https://ctv-cdn-demo.net/pause/qr.png]]></QrCodeImageUrl>
+              <QrCodePosition xPosition="10%" yPosition="70%"/>
+              <QrCodeSize size="15%"/>
+            </CreativeExtension>
+          </CreativeExtensions>
+        </Creative>
+      </Creatives>
+      <Extensions>
+        <Extension type="plcmt" ext="adcom"><plcmt>5</plcmt></Extension>
+        <Extension type="pos" ext="adcom"><pos>7</pos></Extension>
+        <Extension type="playbackmethod" ext="adcom"><playbackmethod>8</playbackmethod></Extension>
+        <Extension type="attr" ext="adcom"><attr>23</attr></Extension>
+      </Extensions>
+    </InLine>
+  </Ad>
+</VAST>

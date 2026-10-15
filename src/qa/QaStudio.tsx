@@ -777,7 +777,6 @@ export function OverlayStage({
         <details
           className="qa-simid-protocol"
           data-simid-protocol="true"
-          {...(studioExpanded ? { open: true } : {})}
         >
           <summary>
             <span className="qa-simid-kicker">Simulate</span>
@@ -820,6 +819,12 @@ export function OverlayStage({
           </button>
           <button className="ghost" onClick={() => playerRef.current?.collapseCreative()} type="button">
             Collapse overlay
+          </button>
+          <button className="ghost" onClick={() => playerRef.current?.appBackgrounded()} type="button">
+            App background
+          </button>
+          <button className="ghost" onClick={() => playerRef.current?.appForegrounded()} type="button">
+            App foreground
           </button>
           <button className="ghost" onClick={() => playerRef.current?.setHostFullscreen(!simidFullscreen)} type="button">
             {simidFullscreen ? "Exit fullscreen" : "Fullscreen"}

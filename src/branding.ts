@@ -12,12 +12,6 @@ export interface Branding {
   discussionsUrl: string | null;
   ruleDocsBase: string | null;
   commonErrorsUrl: string | null;
-  privacyUrl: string | null;
-  termsUrl: string | null;
-  collectSamples: boolean;
-  sampleEndpoint: string | null;
-  vastProxyEndpoint: string | null;
-  scenarioFallbackOrigin: string | null;
   fixtureHosts: readonly string[];
   omidPartnerName: string;
   ruleDocsUrl(ruleId: string): string | null;
@@ -37,12 +31,6 @@ export const branding: Branding = {
   discussionsUrl: null,
   ruleDocsBase: null,
   commonErrorsUrl: null,
-  privacyUrl: null,
-  termsUrl: null,
-  collectSamples: false,
-  sampleEndpoint: null,
-  vastProxyEndpoint: null,
-  scenarioFallbackOrigin: null,
   fixtureHosts: ["example.com"],
   omidPartnerName: "VAST Tester",
   ruleDocsUrl() {

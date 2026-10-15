@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.2" xmlns="http://www.iab.com/VAST">
+  <Ad id="omid-inline-1">
+    <InLine>
+      <AdSystem version="4.2">demo-adserver</AdSystem>
+      <AdServingId>omid-inline-1</AdServingId>
+      <AdTitle>Measured brand spot</AdTitle>
+      <Error><![CDATA[https://cdn.adserver-demo.net/error?code=[ERRORCODE]]]></Error>
+      <Impression><![CDATA[https://cdn.adserver-demo.net/imp/measured]]></Impression>
+      <AdVerifications>
+        <Verification vendor="measurement-demo.com-omid">
+          <JavaScriptResource apiFramework="omid" browserOptional="true"><![CDATA[https://measurement-demo.example/omid/verification.js]]></JavaScriptResource>
+          <TrackingEvents>
+            <Tracking event="verificationNotExecuted"><![CDATA[https://measurement-demo.example/not-executed?reason=[REASON]]]></Tracking>
+          </TrackingEvents>
+          <VerificationParameters><![CDATA[{"partner":"demo","placement":"ctv-preroll"}]]></VerificationParameters>
+        </Verification>
+        <Verification vendor="viewability-demo.com-omid">
+          <JavaScriptResource apiFramework="omid" browserOptional="false"><![CDATA[https://viewability-demo.example/omid/session-client.js]]></JavaScriptResource>
+        </Verification>
+      </AdVerifications>
+      <Creatives>
+        <Creative id="creative-1">
+          <UniversalAdId idRegistry="Ad-ID">DEMO0002000H</UniversalAdId>
+          <Linear>
+            <Duration>00:00:30</Duration>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://cdn.adserver-demo.net/track/start]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://cdn.adserver-demo.net/track/complete]]></Tracking>
+            </TrackingEvents>
+            <MediaFiles>
+              <MediaFile delivery="progressive" type="video/mp4" width="1280" height="720" bitrate="2000"><![CDATA[https://cdn.adserver-demo.net/creative/measured-30.mp4]]></MediaFile>
+            </MediaFiles>
+          </Linear>
+        </Creative>
+      </Creatives>
+    </InLine>
+  </Ad>
+</VAST>

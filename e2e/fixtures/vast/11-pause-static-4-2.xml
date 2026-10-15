@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.2" xmlns="http://www.iab.com/VAST">
+  <Ad id="pause-static-001">
+    <InLine>
+      <AdSystem version="4.2">ctv-adserver-demo</AdSystem>
+      <AdServingId>ServerName-pause-a1b2-c3d4</AdServingId>
+      <AdTitle>CTV Ad Portfolio pause ad, static</AdTitle>
+      <Error><![CDATA[https://ctv-adserver-demo.net/error?code=[ERRORCODE]]]></Error>
+      <Impression><![CDATA[https://ctv-adserver-demo.net/imp/pause-static-001]]></Impression>
+      <Creatives>
+        <Creative id="creative-pause-static-001" adId="AD-ID-PAUSE-STATIC-001">
+          <UniversalAdId idRegistry="Ad-ID">DEMO0007000H</UniversalAdId>
+          <NonLinearAds>
+            <NonLinear width="1920" height="1080" scalable="true" maintainAspectRatio="true">
+              <StaticResource creativeType="image/jpeg"><![CDATA[https://ctv-cdn-demo.net/pause/brand-x-1920x1080.jpg]]></StaticResource>
+              <NonLinearClickThrough><![CDATA[https://advertiser-demo.net/pause-landing]]></NonLinearClickThrough>
+              <NonLinearClickTracking><![CDATA[https://ctv-adserver-demo.net/click/pause-static-001]]></NonLinearClickTracking>
+            </NonLinear>
+            <TrackingEvents>
+              <Tracking event="creativeView"><![CDATA[https://ctv-adserver-demo.net/track/pause-static/creativeView]]></Tracking>
+              <Tracking event="overlayViewDuration"><![CDATA[https://ctv-adserver-demo.net/track/pause-static/overlayView]]></Tracking>
+              <Tracking event="close"><![CDATA[https://ctv-adserver-demo.net/track/pause-static/close]]></Tracking>
+            </TrackingEvents>
+          </NonLinearAds>
+        </Creative>
+      </Creatives>
+      <Extensions>
+        <Extension type="pos" ext="adcom"><pos>7</pos></Extension>
+        <Extension type="attr" ext="adcom"><attr>21</attr></Extension>
+      </Extensions>
+    </InLine>
+  </Ad>
+</VAST>

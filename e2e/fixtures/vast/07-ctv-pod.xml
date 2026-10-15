@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.2" xmlns="http://www.iab.com/VAST">
+  <Ad id="pod-slot-1" sequence="1">
+    <InLine>
+      <AdSystem version="4.2">ctv-adserver-demo</AdSystem>
+      <AdServingId>pod-slot-1</AdServingId>
+      <AdTitle>CTV pod slot 1</AdTitle>
+      <Error><![CDATA[https://ctv-adserver-demo.net/error?code=[ERRORCODE]]]></Error>
+      <Impression><![CDATA[https://ctv-adserver-demo.net/imp/slot1]]></Impression>
+      <Category authority="https://www.iabtechlab.com/categoryauthority">IAB2</Category>
+      <Creatives>
+        <Creative id="creative-slot-1" sequence="1">
+          <UniversalAdId idRegistry="Ad-ID">DEMO0004000H</UniversalAdId>
+          <Linear>
+            <Duration>00:00:30</Duration>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://ctv-adserver-demo.net/track/slot1/start]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://ctv-adserver-demo.net/track/slot1/complete]]></Tracking>
+            </TrackingEvents>
+            <MediaFiles>
+              <Mezzanine delivery="progressive" type="video/mp4" width="3840" height="2160"><![CDATA[https://ctv-cdn-demo.net/mezzanine/slot.mp4]]></Mezzanine>
+              <MediaFile delivery="progressive" type="video/mp4" width="1920" height="1080" bitrate="6000" codec="h264"><![CDATA[https://ctv-cdn-demo.net/creative/slot.mp4]]></MediaFile>
+            </MediaFiles>
+          </Linear>
+        </Creative>
+      </Creatives>
+    </InLine>
+  </Ad>
+  <Ad id="pod-slot-2" sequence="2">
+    <InLine>
+      <AdSystem version="4.2">ctv-adserver-demo</AdSystem>
+      <AdServingId>pod-slot-2</AdServingId>
+      <AdTitle>CTV pod slot 2</AdTitle>
+      <Error><![CDATA[https://ctv-adserver-demo.net/error?code=[ERRORCODE]]]></Error>
+      <Impression><![CDATA[https://ctv-adserver-demo.net/imp/slot2]]></Impression>
+      <Creatives>
+        <Creative id="creative-slot-2" sequence="1">
+          <UniversalAdId idRegistry="Ad-ID">DEMO0005000H</UniversalAdId>
+          <Linear>
+            <Duration>00:00:15</Duration>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://ctv-adserver-demo.net/track/slot2/start]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://ctv-adserver-demo.net/track/slot2/complete]]></Tracking>
+            </TrackingEvents>
+            <MediaFiles>
+              <Mezzanine delivery="progressive" type="video/mp4" width="3840" height="2160"><![CDATA[https://ctv-cdn-demo.net/mezzanine/slot.mp4]]></Mezzanine>
+              <MediaFile delivery="progressive" type="video/mp4" width="1920" height="1080" bitrate="6000" codec="h264"><![CDATA[https://ctv-cdn-demo.net/creative/slot.mp4]]></MediaFile>
+            </MediaFiles>
+          </Linear>
+        </Creative>
+      </Creatives>
+    </InLine>
+  </Ad>
+</VAST>

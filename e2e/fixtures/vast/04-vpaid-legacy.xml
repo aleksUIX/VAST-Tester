@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="3.0">
+  <Ad id="vpaid-inline-1">
+    <InLine>
+      <AdSystem version="3.0">legacy-vpaid-vendor</AdSystem>
+      <AdTitle>Interactive overlay unit</AdTitle>
+      <Error><![CDATA[https://cdn.adserver-demo.net/error?code=[ERRORCODE]]]></Error>
+      <Impression><![CDATA[https://cdn.adserver-demo.net/imp/vpaid]]></Impression>
+      <Creatives>
+        <Creative id="creative-1" AdID="vpaid-unit-1">
+          <Linear>
+            <Duration>00:00:30</Duration>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://cdn.adserver-demo.net/track/start]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://cdn.adserver-demo.net/track/complete]]></Tracking>
+            </TrackingEvents>
+            <VideoClicks>
+              <ClickThrough><![CDATA[https://brand-demo.example/interactive]]></ClickThrough>
+            </VideoClicks>
+            <MediaFiles>
+              <MediaFile delivery="progressive" type="application/javascript" apiFramework="VPAID" width="640" height="360" bitrate="500"><![CDATA[https://vpaid-vendor-demo.net/units/interactive.js]]></MediaFile>
+              <MediaFile delivery="progressive" type="video/mp4" width="640" height="360" bitrate="900"><![CDATA[https://cdn.adserver-demo.net/creative/vpaid-fallback.mp4]]></MediaFile>
+            </MediaFiles>
+          </Linear>
+        </Creative>
+      </Creatives>
+    </InLine>
+  </Ad>
+</VAST>

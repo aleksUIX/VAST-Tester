@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.1" xmlns="http://www.iab.com/VAST">
+  <Ad id="insecure-inline-1">
+    <InLine>
+      <AdSystem version="1.0">legacy-adserver</AdSystem>
+      <AdServingId>insecure-inline-1</AdServingId>
+      <AdTitle>Mixed content spot</AdTitle>
+      <Error><![CDATA[http://legacy-adserver-demo.net/error?code=[ERRORCODE]]]></Error>
+      <Impression><![CDATA[http://legacy-adserver-demo.net/imp]]></Impression>
+      <Creatives>
+        <Creative id="creative-1">
+          <UniversalAdId idRegistry="unknown">unknown</UniversalAdId>
+          <Linear>
+            <Duration>00:00:30</Duration>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[http://legacy-adserver-demo.net/track/start]]></Tracking>
+              <Tracking event="complete"><![CDATA[http://legacy-adserver-demo.net/track/complete]]></Tracking>
+            </TrackingEvents>
+            <VideoClicks>
+              <ClickThrough><![CDATA[http://legacy-brand-demo.example/landing]]></ClickThrough>
+            </VideoClicks>
+            <MediaFiles>
+              <MediaFile delivery="progressive" type="video/mp4" width="640" height="360" bitrate="900"><![CDATA[http://legacy-cdn-demo.net/creative/spot30.mp4]]></MediaFile>
+            </MediaFiles>
+          </Linear>
+        </Creative>
+      </Creatives>
+    </InLine>
+  </Ad>
+</VAST>

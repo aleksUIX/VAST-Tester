@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.2" xmlns="http://www.iab.com/VAST">
+  <Ad id="final-inline-1">
+    <InLine>
+      <AdSystem version="4.2">demo-adserver</AdSystem>
+      <AdServingId>final-inline-1</AdServingId>
+      <AdTitle>Winning creative from the DSP</AdTitle>
+      <Error><![CDATA[https://cdn.adserver-demo.net/error?code=[ERRORCODE]]]></Error>
+      <Impression id="advertiser-imp"><![CDATA[https://cdn.adserver-demo.net/imp/final]]></Impression>
+      <Creatives>
+        <Creative id="final-creative-1">
+          <UniversalAdId idRegistry="Ad-ID">DEMO0006000H</UniversalAdId>
+          <Linear>
+            <Duration>00:00:30</Duration>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://cdn.adserver-demo.net/track/final/start]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://cdn.adserver-demo.net/track/final/complete]]></Tracking>
+            </TrackingEvents>
+            <VideoClicks>
+              <ClickThrough><![CDATA[https://brand-demo.example/landing]]></ClickThrough>
+            </VideoClicks>
+            <MediaFiles>
+              <MediaFile delivery="progressive" type="video/mp4" width="1280" height="720" bitrate="2000"><![CDATA[https://cdn.adserver-demo.net/creative/final-30.mp4]]></MediaFile>
+            </MediaFiles>
+          </Linear>
+        </Creative>
+      </Creatives>
+    </InLine>
+  </Ad>
+</VAST>

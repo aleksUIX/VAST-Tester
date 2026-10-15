@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIMID sample: AdParameters choice</title>
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; font-family: "Helvetica Neue", Arial, sans-serif; }
+  #root { position: absolute; inset: 0; display: none; }
+  #root.live { display: block; }
+  .panel {
+    position: absolute; left: 12px; right: 12px; bottom: 14px;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 14px; background: rgba(12, 12, 12, 0.86);
+    border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 6px; color: #fff;
+  }
+  button { border: 0; border-radius: 4px; padding: 8px 12px; font: inherit; font-weight: 700; cursor: pointer; }
+  .choice { background: #ffd23f; color: #111; }
+  .extend { background: transparent; color: #fff; border: 1px solid rgba(255, 255, 255, 0.45); }
+  #note { margin-left: auto; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.8; }
+</style>
+</head>
+<body>
+<div id="root">
+  <div class="panel">
+    <span id="headline">Choose a finish</span>
+    <span id="choices"></span>
+    <button class="extend" id="extend" type="button">Add 5 seconds</button>
+    <span id="note"></span>
+  </div>
+</div>
+<script src="simid-creative.js"></script>
+<script>
+(function () {
+  var simid = new SimidCreative();
+  var params = { headline: "Choose a finish", choices: ["Matte", "Gloss"] };
+
+  function readParams(creativeData) {
+    var raw = creativeData && creativeData.adParameters;
+    if (!raw) return;
+    try {
+      var parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") params = parsed;
+    } catch (error) {}
+  }
+
+  simid.onInit = function (environmentData, creativeData) {
+    readParams(creativeData);
+    var support = environmentData && environmentData.navigationSupport;
+    document.getElementById("note").textContent = support || "";
+  };
+
+  simid.onStart = function () {
+    document.getElementById("headline").textContent = params.headline || "Choose a finish";
+    var box = document.getElementById("choices");
+    (params.choices || []).forEach(function (label) {
+      var button = document.createElement("button");
+      button.className = "choice";
+      button.type = "button";
+      button.textContent = label;
+      button.addEventListener("click", function (event) {
+        simid.reportTracking(["https://example.com/simid/choice?pick=" + encodeURIComponent(label)]);
+        simid.clickThru(event.clientX, event.clientY, true);
+      });
+      box.appendChild(button);
+    });
+    document.getElementById("extend").addEventListener("click", function () {
+      simid.getMediaState().then(function (state) {
+        var duration = state && typeof state.duration === "number" ? state.duration : 15;
+        return simid.requestChangeAdDuration(duration + 5);
+      }).then(function () {
+        document.getElementById("note").textContent = "duration extended";
+      });
+    });
+    document.getElementById("root").classList.add("live");
+  };
+
+  simid.connect();
+})();
+</script>
+</body>
+</html>

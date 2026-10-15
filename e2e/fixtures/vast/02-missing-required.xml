@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.2" xmlns="http://www.iab.com/VAST">
+  <Ad id="broken-inline-1">
+    <InLine>
+      <AdTitle>Partner tag that will not serve</AdTitle>
+      <Impression><![CDATA[https://cdn.adserver-demo.net/imp]]></Impression>
+      <Creatives>
+        <Creative id="creative-1">
+          <Linear>
+            <MediaFiles>
+              <MediaFile delivery="progressive" type="video/mp4" width="640" height="360"><![CDATA[https://cdn.adserver-demo.net/creative/orphan.mp4]]></MediaFile>
+            </MediaFiles>
+          </Linear>
+        </Creative>
+      </Creatives>
+    </InLine>
+  </Ad>
+</VAST>

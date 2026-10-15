@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.2" xmlns="http://www.iab.com/VAST">
+  <Error><![CDATA[https://ssp-demo.exchange-partner.net/error?code=303&reason=nofill]]></Error>
+</VAST>

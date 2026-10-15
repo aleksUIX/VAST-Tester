@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.2" xmlns="http://www.iab.com/VAST">
+  <Ad id="ssai-inline-1">
+    <InLine>
+      <AdSystem version="4.2">ssai-stitcher-demo</AdSystem>
+      <AdServingId>ssai-inline-1</AdServingId>
+      <AdTitle>Server-stitched mid-roll</AdTitle>
+      <Impression><![CDATA[https://ssai-demo.streaming-partner.net/imp?sid=[SESSIONID]]]></Impression>
+      <Creatives>
+        <Creative id="ssai-creative-1">
+          <UniversalAdId idRegistry="Ad-ID">DEMO0007000H</UniversalAdId>
+          <Linear>
+            <Duration>00:00:30</Duration>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://ssai-demo.streaming-partner.net/track/start]]></Tracking>
+              <Tracking event="firstQuartile"><![CDATA[https://ssai-demo.streaming-partner.net/track/q1]]></Tracking>
+              <Tracking event="midpoint"><![CDATA[https://ssai-demo.streaming-partner.net/track/q2]]></Tracking>
+              <Tracking event="thirdQuartile"><![CDATA[https://ssai-demo.streaming-partner.net/track/q3]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://ssai-demo.streaming-partner.net/track/complete]]></Tracking>
+            </TrackingEvents>
+            <MediaFiles>
+              <Mezzanine delivery="progressive" type="video/mp4" width="1920" height="1080"><![CDATA[https://ssai-demo.streaming-partner.net/mezzanine/ad-break.mp4]]></Mezzanine>
+              <MediaFile delivery="streaming" type="application/x-mpegURL" width="1920" height="1080"><![CDATA[https://ssai-demo.streaming-partner.net/hls/ad-break.m3u8]]></MediaFile>
+            </MediaFiles>
+          </Linear>
+        </Creative>
+      </Creatives>
+    </InLine>
+  </Ad>
+</VAST>

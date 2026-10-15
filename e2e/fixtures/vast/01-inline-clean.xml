@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.2" xmlns="http://www.iab.com/VAST">
+  <Ad id="clean-inline-1" sequence="1">
+    <InLine>
+      <AdSystem version="4.2">demo-adserver</AdSystem>
+      <AdServingId>clean-inline-1</AdServingId>
+      <AdTitle>Q3 brand spot 15s</AdTitle>
+      <Error><![CDATA[https://cdn.adserver-demo.net/error?code=[ERRORCODE]&cb=[CACHEBUSTING]]]></Error>
+      <Impression id="primary"><![CDATA[https://cdn.adserver-demo.net/imp?cb=[CACHEBUSTING]]]></Impression>
+      <Pricing model="CPM" currency="USD"><![CDATA[12.50]]></Pricing>
+      <Creatives>
+        <Creative id="creative-1" sequence="1" adId="brand-q3-15">
+          <UniversalAdId idRegistry="Ad-ID">DEMO0001000H</UniversalAdId>
+          <Linear>
+            <Duration>00:00:15</Duration>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://cdn.adserver-demo.net/track/start]]></Tracking>
+              <Tracking event="firstQuartile"><![CDATA[https://cdn.adserver-demo.net/track/q1]]></Tracking>
+              <Tracking event="midpoint"><![CDATA[https://cdn.adserver-demo.net/track/q2]]></Tracking>
+              <Tracking event="thirdQuartile"><![CDATA[https://cdn.adserver-demo.net/track/q3]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://cdn.adserver-demo.net/track/complete]]></Tracking>
+            </TrackingEvents>
+            <VideoClicks>
+              <ClickThrough id="ct-1"><![CDATA[https://brand-demo.example/landing]]></ClickThrough>
+              <ClickTracking id="ctr-1"><![CDATA[https://cdn.adserver-demo.net/track/click]]></ClickTracking>
+            </VideoClicks>
+            <MediaFiles>
+              <Mezzanine id="mezzanine-1" delivery="progressive" type="video/mp4" width="1920" height="1080"><![CDATA[https://cdn.adserver-demo.net/mezzanine/brand-q3-15.mp4]]></Mezzanine>
+              <MediaFile id="mp4-720" delivery="progressive" type="video/mp4" width="1280" height="720" bitrate="2000" scalable="true" maintainAspectRatio="true"><![CDATA[https://cdn.adserver-demo.net/creative/brand-q3-15.mp4]]></MediaFile>
+              <MediaFile id="webm-720" delivery="progressive" type="video/webm" width="1280" height="720" bitrate="1800" scalable="true" maintainAspectRatio="true"><![CDATA[https://cdn.adserver-demo.net/creative/brand-q3-15.webm]]></MediaFile>
+            </MediaFiles>
+          </Linear>
+        </Creative>
+      </Creatives>
+    </InLine>
+  </Ad>
+</VAST>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VAST version="4.2" xmlns="http://www.iab.com/VAST">
+  <Ad id="companion-inline-1">
+    <InLine>
+      <AdSystem version="4.2">demo-adserver</AdSystem>
+      <AdServingId>companion-inline-1</AdServingId>
+      <AdTitle>Spot with companion and AdChoices icon</AdTitle>
+      <Error><![CDATA[https://cdn.adserver-demo.net/error?code=[ERRORCODE]]]></Error>
+      <Impression><![CDATA[https://cdn.adserver-demo.net/imp/companion]]></Impression>
+      <Creatives>
+        <Creative id="creative-1">
+          <UniversalAdId idRegistry="Ad-ID">DEMO0003000H</UniversalAdId>
+          <Linear>
+            <Duration>00:00:20</Duration>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://cdn.adserver-demo.net/track/start]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://cdn.adserver-demo.net/track/complete]]></Tracking>
+            </TrackingEvents>
+            <MediaFiles>
+              <MediaFile delivery="progressive" type="video/mp4" width="1280" height="720" bitrate="1800"><![CDATA[https://cdn.adserver-demo.net/creative/companion-20.mp4]]></MediaFile>
+            </MediaFiles>
+            <Icons>
+              <Icon program="AdChoices" width="60" height="20" xPosition="right" yPosition="top" apiFramework="static">
+                <StaticResource creativeType="image/svg+xml"><![CDATA[data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSIyMCI+PHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjIwIiBmaWxsPSIjMDA1MmNjIi8+PHRleHQgeD0iNiIgeT0iMTQiIGZpbGw9IiNmZmYiIGZvbnQtc2l6ZT0iMTAiIGZvbnQtZmFtaWx5PSJBcmlhbCI+QWRDaG9pY2VzPC90ZXh0Pjwvc3ZnPg==]]></StaticResource>
+                <IconClicks>
+                  <IconClickThrough><![CDATA[https://privacy-demo.example/adchoices]]></IconClickThrough>
+                </IconClicks>
+              </Icon>
+            </Icons>
+          </Linear>
+        </Creative>
+        <Creative id="creative-2">
+          <UniversalAdId idRegistry="Ad-ID">DEMO0003000H</UniversalAdId>
+          <CompanionAds required="any">
+            <Companion id="companion-300x250" width="300" height="250" assetWidth="300" assetHeight="250" adSlotId="sidebar">
+              <StaticResource creativeType="image/svg+xml"><![CDATA[data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMjUwIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjI1MCIgZmlsbD0iI2VkMzYyOCIvPjx0ZXh0IHg9IjIwIiB5PSIxMzAiIGZpbGw9IiNmZmYiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtZmFtaWx5PSJBcmlhbCI+Q29tcGFuaW9uPC90ZXh0Pjwvc3ZnPg==]]></StaticResource>
+              <CompanionClickThrough><![CDATA[https://brand-demo.example/companion]]></CompanionClickThrough>
+              <TrackingEvents>
+                <Tracking event="creativeView"><![CDATA[https://cdn.adserver-demo.net/track/companion-view]]></Tracking>
+              </TrackingEvents>
+            </Companion>
+          </CompanionAds>
+        </Creative>
+      </Creatives>
+    </InLine>
+  </Ad>
+</VAST>

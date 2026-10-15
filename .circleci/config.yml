@@ -1,0 +1,52 @@
+version: 2.1
+jobs:
+  build:
+    docker:
+      - image: cimg/node:22.16.0-browsers
+    environment:
+      AWS_PAGER: ''
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - node22-npm-v1-{{ checksum "package-lock.json" }}
+      - run:
+          name: Install locked dependencies
+          command: npm ci
+      - save_cache:
+          paths: [~/.npm]
+          key: node22-npm-v1-{{ checksum "package-lock.json" }}
+      - run:
+          name: Check test types and build
+          command: npm run typecheck:e2e && npm run build
+      - run:
+          name: Install browser
+          command: npx playwright install --with-deps chromium
+      - run:
+          name: Test root deployment
+          command: npm test
+      - run:
+          name: Test subpath deployment
+          command: npm run test:e2e:subpath
+      - store_artifacts:
+          path: playwright-report
+      - run:
+          name: Deploy upstream branches to the existing S3 targets
+          command: |
+            if [ -n "${CIRCLE_PULL_REQUEST:-}" ]; then
+              echo "Pull requests do not deploy."
+              exit 0
+            fi
+            case "$CIRCLE_BRANCH" in
+              master|candidate|release) ;;
+              *) echo "This branch does not deploy."; exit 0 ;;
+            esac
+            curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/awscliv2.zip
+            unzip -q /tmp/awscliv2.zip -d /tmp
+            sudo /tmp/aws/install
+            BUCKET="vasttester-origin-$CIRCLE_BRANCH.iabtechlab.com"
+            aws s3 sync dist/ "s3://$BUCKET/" --delete --cache-control max-age=300 --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
+workflows:
+  validate:
+    jobs:
+      - build

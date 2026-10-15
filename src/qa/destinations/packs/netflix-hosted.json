@@ -1,0 +1,48 @@
+{
+  "id": "destination/netflix-hosted",
+  "display_name": "Netflix (hosted)",
+  "summary": "Microsoft Monetize hosted table. H.264 720p greater than 8,000 kbps, 1080p greater than 12,000. MOV floors are higher. No QR codes.",
+  "source_level": "official_vendor",
+  "docs": "https://learn.microsoft.com/en-us/xandr/monetize/creative-ctv-guidelines-and-specifications",
+  "contract": "hosted",
+  "forbid_vpaid": true,
+  "forbid_qr": true,
+  "match": "any",
+  "duration_tolerance_sec": 0.5,
+  "renditions": [
+    {
+      "id": "h264-720",
+      "file_types": ["video/mp4"],
+      "resolutions": [{ "width": 1280, "height": 720 }],
+      "container": "mp4",
+      "codec_family": "h264",
+      "bitrate": { "min_kbps_exclusive": 8000 },
+      "duration_seconds": [10, 15, 20, 30, 60]
+    },
+    {
+      "id": "h264-1080",
+      "file_types": ["video/mp4"],
+      "resolutions": [{ "width": 1920, "height": 1080 }],
+      "container": "mp4",
+      "codec_family": "h264",
+      "bitrate": { "min_kbps_exclusive": 12000 },
+      "duration_seconds": [10, 15, 20, 30, 60]
+    },
+    {
+      "id": "mov-720",
+      "file_types": ["video/quicktime", "video/mp4"],
+      "resolutions": [{ "width": 1280, "height": 720 }],
+      "container": "mov",
+      "bitrate": { "min_kbps_exclusive": 42000 },
+      "duration_seconds": [10, 15, 20, 30, 60]
+    },
+    {
+      "id": "mov-1080",
+      "file_types": ["video/quicktime", "video/mp4"],
+      "resolutions": [{ "width": 1920, "height": 1080 }],
+      "container": "mov",
+      "bitrate": { "min_kbps_exclusive": 80000 },
+      "duration_seconds": [10, 15, 20, 30, 60]
+    }
+  ]
+}

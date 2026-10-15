@@ -139,8 +139,9 @@
     }
 
     simid.onInit = function (environmentData) {
-      if (environmentData && typeof environmentData.skipoffset === 'number') {
-        simid.log('overlay-banner initialized, skipoffset=' + environmentData.skipoffset);
+      var skipoffset = environmentData && environmentData.skipoffset;
+      if (typeof skipoffset === 'string' || typeof skipoffset === 'number') {
+        simid.log('overlay-banner initialized, skipoffset=' + skipoffset);
       }
     };
 
